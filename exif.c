@@ -1,14 +1,21 @@
+#include "config.h"
 #include "exif.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <libexif/exif-data.h>
 #include <libexif/exif-content.h>
 #include <libexif/exif-tag.h>
 
+#define ENTRY_VALUE_LEN 30
+#define FORMATTED_STRING_LEN 50
 
-bool read_exif_data(const char *file_name) {
+
+bool read_exif_data(struct config *cfg, char (*output)[50]) {
+    const char *file_name = cfg->img;
     if (access(file_name, F_OK) != 0) {
         printf("file is not accessible: %s\n", file_name);
         return false;
@@ -18,15 +25,29 @@ bool read_exif_data(const char *file_name) {
         printf("could not read exif data for file: %s\n", file_name);
         return false;
     }
-    // TODO utilize exif_tag_from_name function
-    ExifEntry* entry = exif_data_get_entry(exif, EXIF_TAG_MODEL);
-
-    if (entry == NULL) {
-        printf("failed to get FNUMBER entry\n");
-        return false;
+    char buffer[FORMATTED_STRING_LEN];
+    char value[ENTRY_VALUE_LEN];
+    for (int i = 0; i < cfg->metadata.len; ++i) {
+        memset(buffer, 0, sizeof(buffer));
+        memset(value, 0, sizeof(value));
+        const struct metadata_info* mi = get_metadata_list(&cfg->metadata, i);
+        ExifTag tag = exif_tag_from_name(mi->name);
+        if (tag == 0) {
+            printf("tag not found. searching for: %s\n", mi->name);
+            continue;
+        }
+        ExifEntry* entry = exif_data_get_entry(exif, tag);
+        if (entry == NULL) {
+            printf("failed to get %s entry\n", mi->name);
+            return false;
+        }
+        // get the human readable value out
+        exif_entry_get_value(entry, value, ENTRY_VALUE_LEN);
+        // get formated string
+        sprintf(buffer, "%s%s%s", mi->prefix, value, mi->postfix);
+        // copy to output
+        strncpy(output[i], buffer, FORMATTED_STRING_LEN);
+        exif_entry_unref(entry);
     }
-    
-    printf("entry value for %s = %s\n", exif_tag_get_name(entry->tag), entry->data);
-
     return true;
 }

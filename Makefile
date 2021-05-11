@@ -1,18 +1,15 @@
 
 CC=gcc
-CFLAGS=-Wall
+CFLAGS=-g -Wall -Werror
 LIBS=-lexif -ljpeg
-OBJECTS=jpeg_handler.o exif.o
+OBJECTS=main.o config.o deps/frozen/frozen.o jpeg_handler.o exif.o
 TARGET=infoto
 
 all: $(OBJECTS)
-	$(CC) main.c $(CFLAGS) $(OBJECTS) $(LIBS) -o $(TARGET)
+	$(CC) $^ $(CFLAGS) $(LIBS) -o $(TARGET)
 
-jpeg_handler.o:
-	gcc -c $(CFLAGS) jpeg_handler.c
-
-exif.o:
-	gcc -c $(CFLAGS) exif.c
+%.o: %.c
+	gcc -c -o $@ $< $(CFLAGS) 
 
 clean:
 	rm $(TARGET) $(OBJECTS)

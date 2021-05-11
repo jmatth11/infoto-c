@@ -1,0 +1,45 @@
+{
+    "metadata": [
+        {
+            "name": "Model",
+            "prefix": "",
+            "postfix": "",
+            "order": 0
+        },
+        {
+            "name": "FocalLength",
+            "prefix": "",
+            "postfix": "MM",
+            "order": 1
+        },
+        {
+            "name": "FNumber",
+            "prefix": "F",
+            "postfix": "",
+            "order": 2
+        },
+        {
+            "name": "ExposureTime",
+            "prefix": "",
+            "postfix": " SEC",
+            "order": 3
+        },
+        {
+            "name": "ISOSpeedRatings",
+            "prefix": "ISO ",
+            "postfix": "",
+            "order": 4
+        }
+    ],
+    "font": {
+        "point": 50,
+        "ttf_file": "fonts/MonospaceTypewriter.ttf",
+        "color": "black",
+        "y_offset_pct": 0.07
+    },
+    "background": {
+        "color": "white",
+        "pixels": 100
+    },
+    "image": "references/DSC_1331.jpg"
+}
