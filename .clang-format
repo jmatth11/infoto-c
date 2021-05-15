@@ -1,0 +1,6 @@
+BasedOnStyle: Google
+IndentWidth: 4
+PointerAlignment: Left
+AllowShortBlocksOnASingleLine: SBS_Always
+ColumnLimit: 80
+

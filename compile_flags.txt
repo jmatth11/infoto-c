@@ -1,0 +1,5 @@
+-Wall
+-Werror
+-lexif
+-ljpeg
+
