@@ -14,8 +14,7 @@ static const char *INFOTO_JSON_FORMAT = "{"
 static const char *METADATA_JSON_FORMAT = "{"
                                           " name:%s,"
                                           " prefix:%s,"
-                                          " postfix:%s,"
-                                          " order:%d"
+                                          " postfix:%s "
                                           "}";
 
 /* Font info JSON format */
@@ -36,19 +35,24 @@ static const char *BACKGROUND_JSON_FORMAT = "{"
  * Callback function for parsing metadata list in json.
  */
 static void parse_metadata_list(const char *str, int len, void *user_data) {
-  struct config *out_cfg = (struct config *)user_data;
+  config *out_cfg = (config *)user_data;
   int i;
   struct json_token t;
+  // iterate through all elements in array
   for (i = 0; json_scanf_array_elem(str, len, "", i, &t) > 0; ++i) {
-    struct metadata_info info;
+    metadata_info info;
     // ensure struct is empty
     memset(&info, 0, sizeof(info));
+    // scan out values
     if (json_scanf(t.ptr, t.len, METADATA_JSON_FORMAT, &info.name, &info.prefix,
-                   &info.postfix, &info.order) < 0) {
+                   &info.postfix) < 0) {
       printf("json scanf error: parse_metadata_list; for loop {%d}\n", i);
       continue;
     }
-    insert_metadata_list(&out_cfg->metadata, info);
+    // insert item onto array
+    if (!insert_metadata_array(&out_cfg->metadata, info)) {
+      printf("reallocating array failed\n");
+    }
   }
 }
 
@@ -56,15 +60,13 @@ static void parse_metadata_list(const char *str, int len, void *user_data) {
  * Callback function for parsing font info in json.
  */
 static void parse_font_info(const char *str, int len, void *user_data) {
-  struct config *out_cfg = (struct config *)user_data;
-  struct font_info info;
-  char *filename = NULL;
-  if (json_scanf(str, len, FONT_JSON_FORMAT, &info.point, &filename,
+  config *out_cfg = (config *)user_data;
+  font_info info;
+  if (json_scanf(str, len, FONT_JSON_FORMAT, &info.point, &info.ttf_file,
                  &info.color, &info.y_offset_pct) < 0) {
     printf("json scanf error: parse_font_info\n");
     return;
   }
-  info.ttf_file = filename;
   out_cfg->font = info;
 }
 
@@ -72,8 +74,8 @@ static void parse_font_info(const char *str, int len, void *user_data) {
  * Callback function for parsing background info in json.
  */
 static void parse_background_info(const char *str, int len, void *user_data) {
-  struct config *out_cfg = (struct config *)user_data;
-  struct background_info info;
+  config *out_cfg = (config *)user_data;
+  background_info info;
   if (json_scanf(str, len, BACKGROUND_JSON_FORMAT, info.color, &info.pixels) <
       0) {
     printf("json scanf error: parse_background_info\n");
@@ -89,20 +91,23 @@ static void parse_background_info(const char *str, int len, void *user_data) {
  * @param cfg The struct config to populate.
  * @return True if successful, False otherwise.
  */
-bool config_from_json_file(const char *file_name, struct config *cfg) {
-  printf("config_from_json_file\n");
+bool config_from_json_file(const char *file_name, config *cfg) {
+  // read in file
   char *json_data = json_fread(file_name);
   if (json_data == NULL) {
     printf("error reading json file: %s\n", file_name);
     return false;
   }
+  // initialize config
   init_config(cfg);
+  // scan json file
   if (json_scanf(json_data, strlen(json_data), INFOTO_JSON_FORMAT,
                  &parse_metadata_list, cfg, &parse_font_info, cfg,
                  &parse_background_info, cfg, &cfg->img) <= 0) {
     printf("json scanf error: config_from_json_file.\n");
     return false;
   };
+  // free buffer from file
   free(json_data);
   return true;
 }

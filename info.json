@@ -3,32 +3,27 @@
         {
             "name": "Model",
             "prefix": "",
-            "postfix": "",
-            "order": 0
+            "postfix": ""
         },
         {
             "name": "FocalLength",
             "prefix": "",
-            "postfix": "MM",
-            "order": 1
+            "postfix": ""
         },
         {
             "name": "FNumber",
-            "prefix": "F",
-            "postfix": "",
-            "order": 2
+            "prefix": "",
+            "postfix": ""
         },
         {
             "name": "ExposureTime",
             "prefix": "",
-            "postfix": " SEC",
-            "order": 3
+            "postfix": ""
         },
         {
             "name": "ISOSpeedRatings",
-            "prefix": "ISO ",
-            "postfix": "",
-            "order": 4
+            "prefix": "",
+            "postfix": ""
         }
     ],
     "font": {

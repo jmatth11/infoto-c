@@ -3,15 +3,15 @@
 #include <stdio.h>
 #include <string.h>
 
-void init_config(struct config *cfg) { init_metadata_list(&cfg->metadata, 0); }
+void init_config(config *cfg) { init_metadata_array(&cfg->metadata, 0); }
 
-void free_config(struct config *cfg) {
+void free_config(config *cfg) {
   free(cfg->img);
   free(cfg->font.ttf_file);
-  free_metadata_list(&cfg->metadata);
+  free_metadata_array(&cfg->metadata);
 }
 
-void print_config(const struct config *cfg) {
+void print_config(const config *cfg) {
   if (cfg == NULL) {
     printf("config structure was NULL for print\n");
     return;
@@ -34,46 +34,13 @@ void print_config(const struct config *cfg) {
   printf("}\n");
   printf("metadata: [\n");
   for (int i = 0; i < cfg->metadata.len; ++i) {
-    const struct metadata_info *info = get_metadata_list(&cfg->metadata, i);
+    metadata_info info;
+    get_metadata_array(&cfg->metadata, i, &info);
     printf("\t{\n");
-    printf("\t\tname: %s\n", info->name);
-    printf("\t\tpostfix: %s\n", info->postfix);
-    printf("\t\tprefix: %s\n", info->prefix);
-    printf("\t\torder: %d\n", info->order);
+    printf("\t\tname: %s\n", info.name);
+    printf("\t\tpostfix: %s\n", info.postfix);
+    printf("\t\tprefix: %s\n", info.prefix);
     printf("\t{\n");
   }
   printf("]\n}\n");
-}
-
-void init_metadata_list(struct metadata_list *list, size_t N) {
-  list->metadata =
-      (struct metadata_info *)malloc(N * sizeof(struct metadata_info));
-  list->len = 0;
-  list->cap = N;
-}
-
-void insert_metadata_list(struct metadata_list *list,
-                          struct metadata_info info) {
-  if (list->len >= list->cap) {
-    if (list->cap <= 0)
-      list->cap = 1;
-    list->cap += floor((float)list->cap * 1.3);
-    list->metadata = (struct metadata_info *)realloc(list->metadata,
-                                                     list->cap * sizeof(info));
-  }
-  list->metadata[list->len++] = info;
-}
-
-const struct metadata_info *get_metadata_list(const struct metadata_list *list,
-                                              size_t index) {
-  if (index >= list->len || index < 0) {
-    return NULL;
-  }
-  return &list->metadata[index];
-}
-
-void free_metadata_list(struct metadata_list *list) {
-  free(list->metadata);
-  list->metadata = NULL;
-  list->len = list->cap = 0;
 }

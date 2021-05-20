@@ -2,7 +2,7 @@
 CC=gcc
 CFLAGS=-g -Wall -Werror
 LIBS=-lexif -ljpeg
-OBJECTS=main.o config.o deps/frozen/frozen.o jpeg_handler.o exif.o
+OBJECTS=main.o config.o deps/frozen/frozen.o jpeg_handler.o exif.o json_parsing.o
 TARGET=infoto
 
 all: $(OBJECTS)

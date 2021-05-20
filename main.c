@@ -19,7 +19,7 @@ int main(int argc, const char *argv[]) {
     printf("please supply a jpeg file.\n");
     return 1;
   }
-  struct config cfg;
+  config cfg;
   if (!config_from_json_file(argv[1], &cfg)) {
     printf("generating config object from json file failed\n");
     return 1;

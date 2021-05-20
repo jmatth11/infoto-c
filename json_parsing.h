@@ -10,6 +10,6 @@
  * @param cfg The struct config to populate.
  * @return True if successful, False otherwise.
  */
-bool config_from_json_file(const char *file_name, struct config *cfg);
+bool config_from_json_file(const char *file_name, config *cfg);
 
 #endif

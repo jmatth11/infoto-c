@@ -9,5 +9,4 @@
  * @param buffer An array of char[50]s
  * @returns bool true for success, false otherwise
  */
-bool read_exif_data(struct config *cfg, char (*output)[50]);
-
+bool read_exif_data(config *cfg, char (*output)[50]);
