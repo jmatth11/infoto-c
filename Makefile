@@ -11,13 +11,13 @@ SOURCES=$(wildcard *.c)
 OBJECTS=$(patsubst %.c, $(OBJ)/%.o, $(SOURCES))
 TARGET=infoto
 
+# have to path sub the dependencies. maybe a better way?
 all: $(OBJECTS) $(DEPS)
-	# have to path sub the dependencies. maybe a better way?
 	$(CC) $(patsubst %.o, $(OBJ)/%.o, $(notdir $^)) $(CFLAGS) $(LIBS) -o $(BIN)/$(TARGET)
 
 # rule for dependencies
+# put .o files in obj directory
 deps/%.o: deps/%.c
-	# put .o files in obj directory
 	gcc -c -o $(patsubst %.c, $(OBJ)/%.o, $(notdir $<)) $< $(CFLAGS)
 
 # rule for top level source files
