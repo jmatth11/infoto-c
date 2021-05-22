@@ -15,7 +15,19 @@ int info_text_init(info_text *info, size_t size, char *sep) {
   }
   info->buffer = tmp;
   info->separator = sep;
+  info->size = size;
   return 1;
+}
+
+/**
+ * Get the formatted string for the info text object.
+ *
+ * @param[in] info The info text object
+ * @return The formatted string
+ */
+char *info_text_to_string(info_text *info) {
+  char *buffer = NULL;
+  return buffer;
 }
 
 /**

@@ -12,7 +12,7 @@ typedef struct info_text {
 /**
  * Initialize Info Text object.
  *
- * @param[in] info Info text object to initialize
+ * @param[in,out] info Info text object to initialize
  * @param[in] size The size to initialize to
  * @param[in] sep The separator for each value
  * @return 1 for success, 0 if malloc failed.
@@ -20,9 +20,17 @@ typedef struct info_text {
 int info_text_init(info_text *info, size_t size, char *sep);
 
 /**
- * Free the internal strings and array.
+ * Get the formatted string for the info text object.
  *
  * @param[in] info The info text object
+ * @return The formatted string
+ */
+char *info_text_to_string(info_text *info);
+
+/**
+ * Free the internal strings and array.
+ *
+ * @param[in,out] info The info text object
  */
 void info_text_free(info_text *info);
 

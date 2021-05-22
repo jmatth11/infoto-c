@@ -1,6 +1,6 @@
 
 CC=gcc
-CFLAGS=-Wall -Werror
+CFLAGS=-g -Wall -Werror
 LIBS=-lexif -ljpeg
 DEPS=deps/frozen/frozen.o
 OBJ=obj

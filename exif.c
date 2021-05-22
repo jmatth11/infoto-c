@@ -38,6 +38,7 @@ bool read_exif_data(config *cfg, info_text *output) {
       continue;
     }
     // grab the entry
+    // this object is owned by the EXIF data object, do not unref
     ExifEntry *entry = exif_data_get_entry(exif, tag);
     if (entry == NULL) {
       printf("failed to get %s entry\n", mi.name);
@@ -47,18 +48,20 @@ bool read_exif_data(config *cfg, info_text *output) {
     // get the human readable value out
     exif_entry_get_value(entry, value, entry->size);
     const int buffer_size = (FORMATTED_STRING_LEN + entry->size);
-    char *buffer = (char *)malloc(sizeof(char) * buffer_size);
+    // + 1 for null terminator
+    char *buffer = (char *)malloc((sizeof(char) * buffer_size) + 1);
     // get formated string
-    sprintf(buffer, "%s%s%s", mi.prefix, value, mi.postfix);
+    const int buffer_N =
+        sprintf(buffer, "%s%s%s", mi.prefix, value, mi.postfix);
     // free value since no longer needed
     free(value);
     // uppercase everything
-    for (int i = 0; i < buffer_size; ++i) {
-      buffer[i] = toupper(buffer[i]);
+    for (int j = 0; j < buffer_N; ++j) {
+      buffer[j] = toupper(buffer[j]);
     }
+    // ensure null terminated
+    buffer[buffer_N] = '\0';
     output->buffer[i] = buffer;
-    // decrement ref
-    exif_entry_unref(entry);
   }
   return true;
 }
