@@ -4,18 +4,21 @@
 
 /* Main JSON file format */
 static const char *INFOTO_JSON_FORMAT = "{"
-                                        " metadata:%M,"
+                                        " metadata:[%M],"
                                         " font:%M,"
                                         " background:%M,"
                                         " image:%Q"
                                         "}";
 
 /* Metadata info JSON format */
-static const char *METADATA_JSON_FORMAT = "{"
-                                          " name:%s,"
-                                          " prefix:%s,"
-                                          " postfix:%s "
-                                          "}";
+static const char *METADATA_JSON_FORMAT =
+    "{"
+    " name:%s,"
+    /* Quoted string, because they can be empty */
+    " prefix:%Q,"
+    /* Quoted string, because they can be empty */
+    " postfix:%Q"
+    "}";
 
 /* Font info JSON format */
 static const char *FONT_JSON_FORMAT = "{"
@@ -43,12 +46,22 @@ static void parse_metadata_list(const char *str, int len, void *user_data) {
     metadata_info info;
     // ensure struct is empty
     memset(&info, 0, sizeof(info));
+    // prefix and postfix can be empty string
+    // so pull them out as Quoted strings
+    char *prefix = NULL, *postfix = NULL;
     // scan out values
-    if (json_scanf(t.ptr, t.len, METADATA_JSON_FORMAT, &info.name, &info.prefix,
-                   &info.postfix) < 0) {
+    int result = json_scanf(t.ptr, t.len, METADATA_JSON_FORMAT, &info.name,
+                            &prefix, &postfix);
+    if (result < 0) {
       printf("json scanf error: parse_metadata_list; for loop {%d}\n", i);
       continue;
     }
+    // we only allow 10 characters for each
+    strncpy(info.prefix, prefix, CONFIG_INFO_FIX_LEN);
+    strncpy(info.postfix, postfix, CONFIG_INFO_FIX_LEN);
+    // free them
+    free(prefix);
+    free(postfix);
     // insert item onto array
     if (!insert_metadata_array(&out_cfg->metadata, info)) {
       printf("reallocating array failed\n");
@@ -101,6 +114,7 @@ bool config_from_json_file(const char *file_name, config *cfg) {
   // initialize config
   init_config(cfg);
   // scan json file
+  // %M format is (callback, user_data)
   if (json_scanf(json_data, strlen(json_data), INFOTO_JSON_FORMAT,
                  &parse_metadata_list, cfg, &parse_font_info, cfg,
                  &parse_background_info, cfg, &cfg->img) <= 0) {

@@ -2,14 +2,14 @@
 
 #include "config.h"
 #include "exif.h"
+#include "info_text.h"
 #include "jpeg_handler.h"
 #include "json_parsing.h"
 
 // TODO
-// - pull json lib to parse config file.
-// - iterate over TAG names to pull info out.? maybe done, look back over
 // - create border around original image.
 // - add text with info to newly bordered image.
+// - replace bool and int return values with error_report objects
 //
 // extra
 // - explore pulling EXIF data out of PNG files.
@@ -25,16 +25,16 @@ int main(int argc, const char *argv[]) {
     return 1;
   }
   print_config(&cfg);
-  char(*buffer)[50];
-  buffer = malloc(cfg.metadata.len * sizeof(*buffer));
-  if (!read_exif_data(&cfg, buffer)) {
+  info_text info;
+  info_text_init(&info, cfg.metadata.len, " | ");
+  if (!read_exif_data(&cfg, &info)) {
     printf("reading exif data failed.\n");
     return 1;
   }
-  for (int i = 0; i < cfg.metadata.len; ++i) {
-    printf("value: %s\n", buffer[i]);
+  for (int i = 0; i < info.size; ++i) {
+    printf("value: %s\n", info.buffer[i]);
   }
   free_config(&cfg);
-  free(buffer);
+  info_text_free(&info);
   return 0;
 }

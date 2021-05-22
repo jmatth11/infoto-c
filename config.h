@@ -6,33 +6,42 @@
 
 #include "template_array/array_template.h"
 
+/* define char array lengths */
+
+/* {post|pre}fix length */
+#define CONFIG_INFO_FIX_LEN 10
+/* EXIF Tag name length */
+#define CONFIG_INFO_NAME_LEN 50
+/* color value length */
+#define CONFIG_COLOR_LEN 20
+
 /**
  * structure defining metadata info
  */
 typedef struct metadata_info {
   // prefix value
-  char prefix[10];
+  char prefix[CONFIG_INFO_FIX_LEN];
   // postfix value
-  char postfix[10];
+  char postfix[CONFIG_INFO_FIX_LEN];
   // EXIF tag name to grab
-  char name[50];
+  char name[CONFIG_INFO_NAME_LEN];
 } metadata_info;
 
 /**
  * Generate array for metadata info.
  */
-generate_array_template(metadata, metadata_info)
+generate_array_template(metadata, metadata_info);
 
-    /**
-     * structure defining font info.
-     */
-    typedef struct font_info {
+/**
+ * structure defining font info.
+ */
+typedef struct font_info {
   // font point size
   int point;
   // y offset from the bottom of the image
   float y_offset_pct;
   // color value
-  char color[20];
+  char color[CONFIG_COLOR_LEN];
   // file name for TTF file
   char *ttf_file;
 } font_info;
@@ -42,7 +51,7 @@ generate_array_template(metadata, metadata_info)
  */
 typedef struct background_info {
   // color value
-  char color[20];
+  char color[CONFIG_COLOR_LEN];
   // how many pixels wide to add to the image
   int pixels;
 } background_info;

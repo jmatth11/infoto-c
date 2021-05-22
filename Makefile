@@ -2,14 +2,18 @@
 CC=gcc
 CFLAGS=-g -Wall -Werror
 LIBS=-lexif -ljpeg
-OBJECTS=main.o config.o deps/frozen/frozen.o jpeg_handler.o exif.o json_parsing.o
+DEPS=deps
+OBJ=obj
+BIN=bin
+SOURCES=$(join $(wildcard *.c), $(shell find $(DEPS) -name '*.c'))
+OBJECTS=$(patsubst %.c, $(OBJ)/%.o, $(SOURCES))
 TARGET=infoto
 
 all: $(OBJECTS)
-	$(CC) $^ $(CFLAGS) $(LIBS) -o $(TARGET)
+	$(CC) $^ $(CFLAGS) $(LIBS) -o $(BIN)/$(TARGET)
 
-%.o: %.c
+$(OBJ)/%.o: %.c
 	gcc -c -o $@ $< $(CFLAGS) 
 
 clean:
-	rm $(TARGET) $(OBJECTS)
+	rm $(BIN)/$(TARGET) $(OBJ)/**/*.o

@@ -11,10 +11,9 @@
 #include <libexif/exif-data.h>
 #include <libexif/exif-tag.h>
 
-#define ENTRY_VALUE_LEN 30
-#define FORMATTED_STRING_LEN 50
+#define FORMATTED_STRING_LEN (CONFIG_INFO_FIX_LEN * 2)
 
-bool read_exif_data(config *cfg, char (*output)[50]) {
+bool read_exif_data(config *cfg, info_text *output) {
   const char *file_name = cfg->img;
   // check the access of the file
   if (access(file_name, F_OK) != 0) {
@@ -28,12 +27,7 @@ bool read_exif_data(config *cfg, char (*output)[50]) {
     return false;
   }
   // initialize buffers
-  char buffer[FORMATTED_STRING_LEN];
-  char value[ENTRY_VALUE_LEN];
   for (int i = 0; i < cfg->metadata.len; ++i) {
-    // clear our buffers
-    memset(buffer, 0, sizeof(buffer));
-    memset(value, 0, sizeof(value));
     // get metadata info object
     metadata_info mi;
     get_metadata_array(&cfg->metadata, i, &mi);
@@ -49,16 +43,20 @@ bool read_exif_data(config *cfg, char (*output)[50]) {
       printf("failed to get %s entry\n", mi.name);
       return false;
     }
+    char *value = (char *)malloc(sizeof(char) * entry->size);
     // get the human readable value out
-    exif_entry_get_value(entry, value, ENTRY_VALUE_LEN);
+    exif_entry_get_value(entry, value, entry->size);
+    const int buffer_size = (FORMATTED_STRING_LEN + entry->size);
+    char *buffer = (char *)malloc(sizeof(char) * buffer_size);
     // get formated string
     sprintf(buffer, "%s%s%s", mi.prefix, value, mi.postfix);
+    // free value since no longer needed
+    free(value);
     // uppercase everything
-    for (int i = 0; i < FORMATTED_STRING_LEN; ++i) {
+    for (int i = 0; i < buffer_size; ++i) {
       buffer[i] = toupper(buffer[i]);
     }
-    // copy to output
-    strncpy(output[i], buffer, FORMATTED_STRING_LEN);
+    output->buffer[i] = buffer;
     // decrement ref
     exif_entry_unref(entry);
   }
