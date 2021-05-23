@@ -31,7 +31,6 @@ int main(int argc, const char *argv[]) {
     printf("reading exif data failed.\n");
     return 1;
   }
-  printf("info.size: %ld\n", info.size);
   for (int i = 0; i < info.size; ++i) {
     printf("value: %s\n", info.buffer[i]);
   }

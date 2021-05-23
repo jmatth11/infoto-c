@@ -9,10 +9,19 @@
 
 #include <libexif/exif-content.h>
 #include <libexif/exif-data.h>
+#include <libexif/exif-format.h>
 #include <libexif/exif-tag.h>
+#include <libexif/exif-utils.h>
 
 #define FORMATTED_STRING_LEN (CONFIG_INFO_FIX_LEN * 2)
 
+/**
+ * Increase the size of the buffer string to the given size.
+ *
+ * @param[out] str The string to increase
+ * @param[in] size The size to increase to
+ * @return The number of bytes written (including null terminator, -1 if failed
+ */
 int inc_string_size(char **str, size_t size) {
   const size_t char_size = sizeof(char);
   // extra + char_size for null terminator
@@ -30,19 +39,107 @@ int inc_string_size(char **str, size_t size) {
   return N;
 }
 
-bool read_exif_data(config *cfg, info_text *output) {
-  const char *file_name = cfg->img;
+/**
+ * Get the value from the entry object into a string.
+ *
+ * @param[in] entry The ExifEntry object
+ * @param[in] order The ExifData byte order
+ * @param[out] out The char array to populate
+ */
+void get_entry_value_str(ExifEntry *entry, ExifByteOrder order, char *out) {
+  switch (entry->format) {
+  case EXIF_FORMAT_SHORT: {
+    ExifShort tmp = exif_get_short(entry->data, order);
+    sprintf(out, "%d", tmp);
+  } break;
+  case EXIF_FORMAT_SSHORT: {
+    ExifSShort tmp = exif_get_sshort(entry->data, order);
+    sprintf(out, "%d", tmp);
+  } break;
+  case EXIF_FORMAT_LONG: {
+    ExifLong tmp = exif_get_long(entry->data, order);
+    sprintf(out, "%d", tmp);
+  } break;
+  case EXIF_FORMAT_SLONG: {
+    ExifSLong tmp = exif_get_slong(entry->data, order);
+    sprintf(out, "%d", tmp);
+  } break;
+  case EXIF_FORMAT_RATIONAL: {
+    ExifRational tmp = exif_get_rational(entry->data, order);
+    if (tmp.numerator > 1) {
+      sprintf(out, "%.1f", (double)tmp.numerator / (double)tmp.denominator);
+    } else {
+      sprintf(out, "%d/%d", tmp.numerator, tmp.denominator);
+    }
+  } break;
+  case EXIF_FORMAT_SRATIONAL: {
+    ExifSRational tmp = exif_get_srational(entry->data, order);
+    if (tmp.numerator > 1) {
+      sprintf(out, "%.1f", (double)tmp.numerator / (double)tmp.denominator);
+    } else {
+      sprintf(out, "%d/%d", tmp.numerator, tmp.denominator);
+    }
+  } break;
+  default: {
+    // handles EXIF_FORMAT_{ASCII|BYTE|SBYTE}
+    sprintf(out, "%s", entry->data);
+  } break;
+  }
+}
+
+/**
+ * Get EXIF data object from file if file exists.
+ *
+ * @param[in] file_name The file to access
+ * @param[out] exif The EXIF data object to populate
+ * @return True if successful, False otherwise
+ */
+bool get_exif_data(const char *file_name, ExifData **exif) {
   // check the access of the file
   if (access(file_name, F_OK) != 0) {
     printf("file is not accessible: %s\n", file_name);
     return false;
   }
   // read out EXIF data
-  ExifData *exif = exif_data_new_from_file(file_name);
+  *exif = exif_data_new_from_file(file_name);
   if (exif == NULL) {
     printf("could not read exif data for file: %s\n", file_name);
     return false;
   }
+  return true;
+}
+
+char *get_info_text_buffer(const ExifEntry *entry, const char *value,
+                           const metadata_info mi) {
+  const int buffer_size = (FORMATTED_STRING_LEN + entry->size);
+  const size_t char_size = sizeof(char);
+  char *buffer = (char *)malloc((char_size * buffer_size) + char_size);
+  if (buffer == NULL) {
+    printf("malloc of buffer failed.\n");
+    return false;
+  }
+  // get formated string
+  // buffer_N is number of characters in buffer, not including null character
+  const int buffer_N = sprintf(buffer, "%s%s%s", mi.prefix, value, mi.postfix);
+  if (buffer_N < 0) {
+    printf("sprintf failed\n");
+    return false;
+  }
+  // force uppercase
+  for (int j = 0; j <= buffer_N; ++j) {
+    buffer[j] = toupper(buffer[j]);
+  }
+  // ensure null terminated
+  buffer[buffer_N + 1] = '\0';
+  return buffer;
+}
+
+bool read_exif_data(config *cfg, info_text *output) {
+  ExifData *exif = NULL;
+  if (!get_exif_data(cfg->img, &exif)) {
+    return false;
+  }
+  ExifByteOrder byte_order = exif_data_get_byte_order(exif);
   // have a reusable value buffer
   char *value = NULL;
   size_t value_len = 0;
@@ -64,6 +161,7 @@ bool read_exif_data(config *cfg, info_text *output) {
       printf("failed to get %s entry\n", mi.name);
       return false;
     }
+    // allocate more memory for our buffer if it's not big enough
     if (value_len <= entry->size) {
       // value_len is size + sizeof(char) for null character
       value_len = inc_string_size(&value, entry->size);
@@ -72,42 +170,19 @@ bool read_exif_data(config *cfg, info_text *output) {
         return false;
       }
     }
-    // value_len = (sizeof(char) * entry->size) + sizeof(char);
-    // char *value = (char *)malloc(value_len);
-    // clear out char array
-    // value[value_len] = '\0';
-    memset(value, 0, value_len);
-    printf("entry->size: %u\n", entry->size);
-    printf("value_len: %ld\n", value_len);
-    // get the human readable value out
-    // value is utf-8 encoded
-    exif_entry_get_value(entry, value, entry->size);
-    const int buffer_size = (FORMATTED_STRING_LEN + entry->size);
-    const size_t char_size = sizeof(char);
-    char *buffer = (char *)malloc((char_size * buffer_size) + char_size);
+    // clear out value buffer
+    memset(value, 0, value_len - 1);
+    // get entry value
+    get_entry_value_str(entry, byte_order, value);
+    // get buffer for info text
+    char *buffer = get_info_text_buffer(entry, value, mi);
     if (buffer == NULL) {
-      printf("malloc of buffer failed.\n");
+      printf("info text buffer failed.\n");
       return false;
     }
-    // get formated string
-    // buffer_N is number of characters in buffer, not including null character
-    printf("prefix: \"%s\"\n", mi.prefix);
-    printf("value: \"%s\"\n", value);
-    printf("postfix: \"%s\"\n", mi.postfix);
-    const int buffer_N =
-        sprintf(buffer, "%s%s%s", mi.prefix, value, mi.postfix);
-    if (buffer_N < 0) {
-      printf("sprintf failed\n");
-      return false;
-    }
-    // uppercase everything
-    for (int j = 0; j <= buffer_N; ++j) {
-      buffer[j] = toupper(buffer[j]);
-    }
-    // ensure null terminated
-    buffer[buffer_N + 1] = '\0';
     output->buffer[i] = buffer;
   }
+  // free value buffer
   free(value);
   return true;
 }

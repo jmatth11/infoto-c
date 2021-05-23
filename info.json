@@ -8,22 +8,22 @@
         {
             "name": "FocalLength",
             "prefix": "",
-            "postfix": ""
+            "postfix": " MM"
         },
         {
             "name": "FNumber",
-            "prefix": "",
+            "prefix": "F/",
             "postfix": ""
         },
         {
             "name": "ExposureTime",
             "prefix": "",
-            "postfix": ""
+            "postfix": " SEC"
         },
         {
             "name": "ISOSpeedRatings",
             "prefix": "",
-            "postfix": " iso"
+            "postfix": " ISO"
         }
     ],
     "font": {
