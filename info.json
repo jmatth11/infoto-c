@@ -23,7 +23,7 @@
         {
             "name": "ISOSpeedRatings",
             "prefix": "",
-            "postfix": " ISO"
+            "postfix": " iso"
         }
     ],
     "font": {

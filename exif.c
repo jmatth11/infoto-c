@@ -13,6 +13,23 @@
 
 #define FORMATTED_STRING_LEN (CONFIG_INFO_FIX_LEN * 2)
 
+int inc_string_size(char **str, size_t size) {
+  const size_t char_size = sizeof(char);
+  // extra + char_size for null terminator
+  const size_t N = (char_size * size) + char_size;
+  char *tmp = NULL;
+  if (*str == NULL) {
+    tmp = (char *)malloc(N);
+  } else {
+    tmp = (char *)realloc(*str, N);
+  }
+  if (tmp == NULL)
+    return -1;
+  tmp[N - 1] = '\0';
+  *str = tmp;
+  return N;
+}
+
 bool read_exif_data(config *cfg, info_text *output) {
   const char *file_name = cfg->img;
   // check the access of the file
@@ -26,6 +43,9 @@ bool read_exif_data(config *cfg, info_text *output) {
     printf("could not read exif data for file: %s\n", file_name);
     return false;
   }
+  // have a reusable value buffer
+  char *value = NULL;
+  size_t value_len = 0;
   // initialize buffers
   for (int i = 0; i < cfg->metadata.len; ++i) {
     // get metadata info object
@@ -44,24 +64,50 @@ bool read_exif_data(config *cfg, info_text *output) {
       printf("failed to get %s entry\n", mi.name);
       return false;
     }
-    char *value = (char *)malloc(sizeof(char) * entry->size);
+    if (value_len <= entry->size) {
+      // value_len is size + sizeof(char) for null character
+      value_len = inc_string_size(&value, entry->size);
+      if (value_len == -1) {
+        printf("inc_string_size failed.\n");
+        return false;
+      }
+    }
+    // value_len = (sizeof(char) * entry->size) + sizeof(char);
+    // char *value = (char *)malloc(value_len);
+    // clear out char array
+    // value[value_len] = '\0';
+    memset(value, 0, value_len);
+    printf("entry->size: %u\n", entry->size);
+    printf("value_len: %ld\n", value_len);
     // get the human readable value out
+    // value is utf-8 encoded
     exif_entry_get_value(entry, value, entry->size);
     const int buffer_size = (FORMATTED_STRING_LEN + entry->size);
-    // + 1 for null terminator
-    char *buffer = (char *)malloc((sizeof(char) * buffer_size) + 1);
+    const size_t char_size = sizeof(char);
+    char *buffer = (char *)malloc((char_size * buffer_size) + char_size);
+    if (buffer == NULL) {
+      printf("malloc of buffer failed.\n");
+      return false;
+    }
     // get formated string
+    // buffer_N is number of characters in buffer, not including null character
+    printf("prefix: \"%s\"\n", mi.prefix);
+    printf("value: \"%s\"\n", value);
+    printf("postfix: \"%s\"\n", mi.postfix);
     const int buffer_N =
         sprintf(buffer, "%s%s%s", mi.prefix, value, mi.postfix);
-    // free value since no longer needed
-    free(value);
+    if (buffer_N < 0) {
+      printf("sprintf failed\n");
+      return false;
+    }
     // uppercase everything
-    for (int j = 0; j < buffer_N; ++j) {
+    for (int j = 0; j <= buffer_N; ++j) {
       buffer[j] = toupper(buffer[j]);
     }
     // ensure null terminated
-    buffer[buffer_N] = '\0';
+    buffer[buffer_N + 1] = '\0';
     output->buffer[i] = buffer;
   }
+  free(value);
   return true;
 }
