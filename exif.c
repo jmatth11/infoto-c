@@ -66,6 +66,7 @@ void get_entry_value_str(ExifEntry *entry, ExifByteOrder order, char *out) {
   } break;
   case EXIF_FORMAT_RATIONAL: {
     ExifRational tmp = exif_get_rational(entry->data, order);
+    // TODO may need to handle special cases, not sure yet
     if (tmp.numerator > 1) {
       sprintf(out, "%.1f", (double)tmp.numerator / (double)tmp.denominator);
     } else {
@@ -74,6 +75,7 @@ void get_entry_value_str(ExifEntry *entry, ExifByteOrder order, char *out) {
   } break;
   case EXIF_FORMAT_SRATIONAL: {
     ExifSRational tmp = exif_get_srational(entry->data, order);
+    // TODO may need to handle special cases, not sure yet
     if (tmp.numerator > 1) {
       sprintf(out, "%.1f", (double)tmp.numerator / (double)tmp.denominator);
     } else {
