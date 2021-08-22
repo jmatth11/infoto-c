@@ -14,6 +14,6 @@ typedef struct error_report {
  * @param[in] msg The message to store in the structure
  * @return A new error report object with the given message
  */
-extern inline error_report error(char *msg) { return (error_report){msg}; }
+static inline error_report error(char *msg) { return (error_report){msg}; }
 
 #endif
