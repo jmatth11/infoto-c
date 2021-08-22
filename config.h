@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "template_array/array_template.h"
+#include "deps/array_template/array_template.h"
 
 /* define char array lengths */
 
