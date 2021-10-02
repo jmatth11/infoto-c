@@ -1,8 +1,13 @@
 #include "jpeg_handler.h"
+#include "img_utils.h"
 
 #include <jpeglib.h>
 #include <setjmp.h>
 #include <string.h>
+
+// temp file name constant values
+#define TMP_FILE_NAME "-edited.tmp"
+#define TMP_FILE_NAME_LEN 11
 
 /**
  * Custom jpeg err structure
@@ -120,19 +125,93 @@ bool comp_img(const char *file_name, struct comp_img *comp) {
 void sync_settings(const int added_pixels, struct decomp_img *decomp,
                    struct comp_img *comp) {
   // grab our decomp img's width and height + the specified added pixels
-  comp->cinfo.image_width = decomp->cinfo.image_width + added_pixels;
-  comp->cinfo.image_height = decomp->cinfo.image_height + added_pixels;
+  comp->cinfo.image_width = decomp->cinfo.output_width + added_pixels;
+  comp->cinfo.image_height = decomp->cinfo.output_height + added_pixels;
   // grab the number of color components
-  comp->cinfo.input_components = decomp->cinfo.num_components;
+  comp->cinfo.input_components = decomp->cinfo.output_components;
   // grab the color space value
   comp->cinfo.in_color_space = decomp->cinfo.jpeg_color_space;
-  // set the rest as defaults
+  // set the rest of the defaults
   jpeg_set_defaults(&comp->cinfo);
   // keep original quality
   jpeg_set_quality(&comp->cinfo, 100, true);
 }
 
-char *tmp_file_name(const char *file_name) { return NULL; }
+char *tmp_file_name(const char *file_name) {
+  int len = strlen(file_name);
+  char *tmp_file_name =
+      (char *)malloc((len + TMP_FILE_NAME_LEN) * sizeof(char));
+  strncpy(tmp_file_name, file_name, len);
+  memcpy(&tmp_file_name[len], TMP_FILE_NAME, TMP_FILE_NAME_LEN);
+  return tmp_file_name;
+}
+
+/**
+ * Write out full background row for number of background pixels on top or
+ * bottom of image.
+ *
+ * @param [in] cfg The configuration for the image.
+ * @param [in,out] comp The compressed jpeg object to write to.
+ */
+void write_background_rows(const config *cfg, const pixel border_color,
+                           struct comp_img *comp) {
+  int row_size = comp->cinfo.image_width * comp->cinfo.num_components;
+
+  JSAMPROW row_stride = (JSAMPLE *)malloc(row_size * sizeof(JSAMPLE));
+  for (int i = 0; i < row_size; i += comp->cinfo.num_components) {
+    write_pixel_to_buffer(border_color, i, row_stride);
+  }
+  JSAMPARRAY row_array = &row_stride;
+
+  for (int i = 0; i < cfg->background.pixels; ++i) {
+    jpeg_write_scanlines(&comp->cinfo, row_array, 1);
+  }
+
+  free(row_stride);
+}
+
+/**
+ * Copy image data from decomp into comp and handle border creation.
+ *
+ * @param[in] cfg The configuration object.
+ * @param[in] border_color The border color to use.
+ * @param[in] decomp The decompressed image to read from.
+ * @param[in,out] comp The compressed image to write to.
+ */
+void copy_read_data_to_write_buffer(const config *cfg, const pixel border_color,
+                                    struct decomp_img *decomp,
+                                    struct comp_img *comp) {
+  int num_comp = comp->cinfo.num_components;
+  int row_size = comp->cinfo.image_width * num_comp;
+
+  JSAMPROW row_stride = (JSAMPLE *)malloc(row_size * sizeof(JSAMPLE));
+  JSAMPARRAY row_array = &row_stride;
+
+  // we are assuming comp.num_components and decomp.num_components are the same
+  int read_width = decomp->cinfo.output_width * decomp->cinfo.output_components;
+  int border_side_width = cfg->background.pixels * num_comp;
+  int border_and_read_width = read_width + border_side_width;
+
+  // this buffer gets cleaned up when decomp's cinfo gets cleaned up.
+  JSAMPARRAY buffer = (*(decomp->cinfo).mem->alloc_sarray)(
+      (j_common_ptr)&decomp->cinfo, JPOOL_IMAGE, read_width, 1);
+
+  while (decomp->cinfo.output_scanline < decomp->cinfo.output_height) {
+    for (int i = 0; i < border_side_width; i += num_comp) {
+      write_pixel_to_buffer(border_color, i, row_stride);
+      // jpeg_write_scanlines(&comp.cinfo, row_array, 1);
+    }
+    jpeg_read_scanlines(&decomp->cinfo, buffer, 1);
+    memcpy(&row_stride[border_side_width], buffer[0], read_width);
+
+    for (int i = border_and_read_width;
+         i < (border_and_read_width + border_side_width); i += num_comp) {
+      write_pixel_to_buffer(border_color, i, row_stride);
+    }
+    jpeg_write_scanlines(&comp->cinfo, row_array, 1);
+  }
+  free(row_stride);
+}
 
 /**
  * Add text and border to image, given config and info text.
@@ -168,10 +247,28 @@ bool add_text_to_img(const config *cfg, const info_text *info) {
   }
   // sync settings
   sync_settings(cfg->background.pixels, &decomp, &comp);
+
+  pixel border_color = get_colored_pixel(cfg->background.color);
+  if (comp.cinfo.num_components > 3)
+    border_color.use_alpha = 1;
+
   // write border and original image
+  jpeg_start_compress(&comp.cinfo, true);
+
+  write_background_rows(cfg, border_color, &comp);
+
+  jpeg_start_decompress(&decomp.cinfo);
+
+  copy_read_data_to_write_buffer(cfg, border_color, &decomp, &comp);
+
+  write_background_rows(cfg, border_color, &comp);
 
   // save new image
   // clean up writer, reader, and new file name
   clean_up(&comp, &decomp, edit_file_name);
+
+  // TODO get file base name and extension
+  // TODO rename files
+  // rename();
   return true;
 }

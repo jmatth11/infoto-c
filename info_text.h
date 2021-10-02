@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-typedef struct info_text {
+typedef struct {
   char **buffer;
   size_t size;
   char *separator;

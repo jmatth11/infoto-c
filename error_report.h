@@ -4,7 +4,7 @@
 /**
  * structure to report back errors
  */
-typedef struct error_report {
+typedef struct {
   char *message;
 } error_report;
 

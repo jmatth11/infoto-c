@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "deps/array_template/array_template.h"
+#include "img_utils.h"
 
 /* define char array lengths */
 
@@ -35,7 +36,7 @@ generate_array_template(metadata, metadata_info);
 /**
  * structure defining font info.
  */
-typedef struct font_info {
+typedef struct {
   // font point size
   int point;
   // y offset from the bottom of the image
@@ -49,9 +50,9 @@ typedef struct font_info {
 /**
  * structure defining background info
  */
-typedef struct background_info {
+typedef struct {
   // color value
-  char color[CONFIG_COLOR_LEN];
+  background_color color;
   // how many pixels wide to add to the image
   int pixels;
 } background_info;
@@ -59,7 +60,7 @@ typedef struct background_info {
 /**
  * Configuration object to handle infoto logic
  */
-typedef struct config {
+typedef struct {
   font_info font;
   background_info background;
   metadata_array metadata;
