@@ -1,5 +1,6 @@
 #include "exif.h"
 #include "config.h"
+#include "str_utils.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -14,30 +15,6 @@
 #include <libexif/exif-utils.h>
 
 #define FORMATTED_STRING_LEN (CONFIG_INFO_FIX_LEN * 2)
-
-/**
- * Increase the size of the buffer string to the given size.
- *
- * @param[out] str The string to increase
- * @param[in] size The size to increase to
- * @return The number of bytes written (including null terminator, -1 if failed
- */
-int inc_string_size(char **str, size_t size) {
-  const size_t char_size = sizeof(char);
-  // extra + char_size for null terminator
-  const size_t N = (char_size * size) + char_size;
-  char *tmp = NULL;
-  if (*str == NULL) {
-    tmp = (char *)malloc(N);
-  } else {
-    tmp = (char *)realloc(*str, N);
-  }
-  if (tmp == NULL)
-    return -1;
-  tmp[N - 1] = '\0';
-  *str = tmp;
-  return N;
-}
 
 /**
  * Get the value from the entry object into a string.

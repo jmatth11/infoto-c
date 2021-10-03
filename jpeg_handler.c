@@ -67,18 +67,6 @@ bool decomp_img(const char *file_name, struct decomp_img *decomp) {
   return true;
 }
 
-// JSAMPARRAY buffer;
-// int row_stride;
-// jpeg_start_decompress(cinfo);
-
-// row_stride = cinfo->output_width * cinfo->output_components;
-// buffer = (*cinfo->mem->alloc_sarray)((j_common_ptr)cinfo, JPOOL_IMAGE,
-//                                     row_stride, 1);
-
-// while (cinfo->output_scanline < cinfo->output_height) {
-//  jpeg_read_scanlines(cinfo, buffer, 1);
-//}
-
 void close_jpeg_img(j_common_ptr info) {
   // finish up objects
   if (info->is_decompressor) {
@@ -255,6 +243,7 @@ bool add_text_to_img(const config *cfg, const info_text *info) {
   // write border and original image
   jpeg_start_compress(&comp.cinfo, true);
 
+  // TODO try to refactor this to make it more reusable and less crappy
   write_background_rows(cfg, border_color, &comp);
 
   jpeg_start_decompress(&decomp.cinfo);
@@ -267,7 +256,7 @@ bool add_text_to_img(const config *cfg, const info_text *info) {
   // clean up writer, reader, and new file name
   clean_up(&comp, &decomp, edit_file_name);
 
-  // TODO get file base name and extension
+  // TODO get file base name and extension, by using str_utils.h
   // TODO rename files
   // rename();
   return true;
