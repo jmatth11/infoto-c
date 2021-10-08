@@ -124,8 +124,8 @@ void sync_settings(const int added_pixels, struct decomp_img *decomp,
   // grab the number of color components
   comp->cinfo.input_components = decomp->cinfo.num_components;
   printf("cinfo.input_components = %d\n", comp->cinfo.input_components);
-  // grab the color space value
-  comp->cinfo.in_color_space = decomp->cinfo.jpeg_color_space;
+  // grab the color space value. must be out_color_space
+  comp->cinfo.in_color_space = decomp->cinfo.out_color_space;
   printf("cinfo.in_color_space = %d\n", comp->cinfo.in_color_space);
   comp->cinfo.input_gamma = decomp->cinfo.output_gamma;
   printf("cinfo.input_gamma = %f\n", comp->cinfo.input_gamma);
