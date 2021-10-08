@@ -90,7 +90,7 @@ static void parse_background_info(const char *str, int len, void *user_data) {
   config *out_cfg = (config *)user_data;
   background_info info;
   char color_text[20];
-  if (json_scanf(str, len, BACKGROUND_JSON_FORMAT, color_text, &info.pixels) <
+  if (json_scanf(str, len, BACKGROUND_JSON_FORMAT, &color_text, &info.pixels) <
       0) {
     printf("json scanf error: parse_background_info\n");
     return;

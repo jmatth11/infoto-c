@@ -34,6 +34,9 @@ int main(int argc, const char *argv[]) {
   for (int i = 0; i < info.size; ++i) {
     printf("value: %s\n", info.buffer[i]);
   }
+  if (!add_text_to_img(&cfg, &info)) {
+    printf("failed adding text to image.\n");
+  }
   free_config(&cfg);
   info_text_free(&info);
   return 0;

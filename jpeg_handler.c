@@ -1,13 +1,18 @@
 #include "jpeg_handler.h"
 #include "img_utils.h"
+#include "str_utils.h"
 
 #include <jpeglib.h>
 #include <setjmp.h>
+#include <stdio.h>
 #include <string.h>
 
 // temp file name constant values
 #define TMP_FILE_NAME "-edited.tmp"
-#define TMP_FILE_NAME_LEN 11
+#define TMP_FILE_NAME_LEN strlen(TMP_FILE_NAME)
+
+#define EDITED_FILE_NAME "-edited"
+#define EDITED_FILE_NAME_LEN strlen(EDITED_FILE_NAME)
 
 /**
  * Custom jpeg err structure
@@ -78,7 +83,7 @@ void close_jpeg_img(j_common_ptr info) {
   jpeg_destroy(info);
 }
 
-void clean_up(struct comp_img *comp, struct decomp_img *decomp, char *name) {
+void clean_up(struct comp_img *comp, struct decomp_img *decomp) {
   // close jpen imgs
   close_jpeg_img((j_common_ptr)&comp->cinfo);
   close_jpeg_img((j_common_ptr)&decomp->cinfo);
@@ -89,13 +94,10 @@ void clean_up(struct comp_img *comp, struct decomp_img *decomp, char *name) {
   if (decomp->file != NULL) {
     fclose(decomp->file);
   }
-  // free the malloced tmp name
-  if (name != NULL) {
-    free(name);
-  }
 }
 
 bool comp_img(const char *file_name, struct comp_img *comp) {
+  printf("comp_img\n");
   // set up the error handler
   comp->cinfo.err = jpeg_std_error(&comp->err.pub);
   // create the compress object
@@ -107,18 +109,26 @@ bool comp_img(const char *file_name, struct comp_img *comp) {
   }
   // set our std out destination (the file)
   jpeg_stdio_dest(&comp->cinfo, comp->file);
+  printf("end comp_img\n");
   return true;
 }
 
 void sync_settings(const int added_pixels, struct decomp_img *decomp,
                    struct comp_img *comp) {
   // grab our decomp img's width and height + the specified added pixels
-  comp->cinfo.image_width = decomp->cinfo.output_width + added_pixels;
-  comp->cinfo.image_height = decomp->cinfo.output_height + added_pixels;
+  const int border = added_pixels * 2;
+  comp->cinfo.image_width = decomp->cinfo.image_width + border;
+  printf("cinfo.image_width = %d\n", comp->cinfo.image_width);
+  comp->cinfo.image_height = decomp->cinfo.image_height + border;
+  printf("cinfo.image_height = %d\n", comp->cinfo.image_height);
   // grab the number of color components
-  comp->cinfo.input_components = decomp->cinfo.output_components;
+  comp->cinfo.input_components = decomp->cinfo.num_components;
+  printf("cinfo.input_components = %d\n", comp->cinfo.input_components);
   // grab the color space value
   comp->cinfo.in_color_space = decomp->cinfo.jpeg_color_space;
+  printf("cinfo.in_color_space = %d\n", comp->cinfo.in_color_space);
+  comp->cinfo.input_gamma = decomp->cinfo.output_gamma;
+  printf("cinfo.input_gamma = %f\n", comp->cinfo.input_gamma);
   // set the rest of the defaults
   jpeg_set_defaults(&comp->cinfo);
   // keep original quality
@@ -128,9 +138,11 @@ void sync_settings(const int added_pixels, struct decomp_img *decomp,
 char *tmp_file_name(const char *file_name) {
   int len = strlen(file_name);
   char *tmp_file_name =
-      (char *)malloc((len + TMP_FILE_NAME_LEN) * sizeof(char));
+      (char *)malloc((len + TMP_FILE_NAME_LEN + 1) * sizeof(char));
   strncpy(tmp_file_name, file_name, len);
   memcpy(&tmp_file_name[len], TMP_FILE_NAME, TMP_FILE_NAME_LEN);
+  // memcpy doesn't add null terminator. so add it.
+  tmp_file_name[len + TMP_FILE_NAME_LEN] = '\0';
   return tmp_file_name;
 }
 
@@ -170,13 +182,15 @@ void copy_read_data_to_write_buffer(const config *cfg, const pixel border_color,
                                     struct decomp_img *decomp,
                                     struct comp_img *comp) {
   int num_comp = comp->cinfo.num_components;
-  int row_size = comp->cinfo.image_width * num_comp;
+  int row_size = comp->cinfo.image_width * num_comp + 1;
+  printf("row_size = %d\n", row_size);
 
   JSAMPROW row_stride = (JSAMPLE *)malloc(row_size * sizeof(JSAMPLE));
   JSAMPARRAY row_array = &row_stride;
 
   // we are assuming comp.num_components and decomp.num_components are the same
-  int read_width = decomp->cinfo.output_width * decomp->cinfo.output_components;
+  int read_width = decomp->cinfo.image_width * decomp->cinfo.num_components;
+  printf("read_width = %d\n", read_width);
   int border_side_width = cfg->background.pixels * num_comp;
   int border_and_read_width = read_width + border_side_width;
 
@@ -187,8 +201,8 @@ void copy_read_data_to_write_buffer(const config *cfg, const pixel border_color,
   while (decomp->cinfo.output_scanline < decomp->cinfo.output_height) {
     for (int i = 0; i < border_side_width; i += num_comp) {
       write_pixel_to_buffer(border_color, i, row_stride);
-      // jpeg_write_scanlines(&comp.cinfo, row_array, 1);
     }
+    // TODO colors are bright pink. bytes might be off
     jpeg_read_scanlines(&decomp->cinfo, buffer, 1);
     memcpy(&row_stride[border_side_width], buffer[0], read_width);
 
@@ -216,11 +230,12 @@ bool add_text_to_img(const config *cfg, const info_text *info) {
   struct comp_img comp;
   memset(&comp, 0, sizeof(comp));
   // create tmp edit file name
-  char *edit_file_name = tmp_file_name(cfg->img);
+  char *tmp_edit_file_name = tmp_file_name(cfg->img);
   // set up error handling for decomp and comp structs
   if (setjmp(decomp.err.jmp_to_err_handler) ||
       setjmp(comp.err.jmp_to_err_handler)) {
-    clean_up(&comp, &decomp, edit_file_name);
+    clean_up(&comp, &decomp);
+    free(tmp_edit_file_name);
     return false;
   }
   // initialize decomp
@@ -229,16 +244,19 @@ bool add_text_to_img(const config *cfg, const info_text *info) {
     return false;
   }
   // initialize comp
-  if (!comp_img(edit_file_name, &comp)) {
+  if (!comp_img(tmp_edit_file_name, &comp)) {
     printf("failed creating jpeg writer\n");
     return false;
   }
+  printf("past comp\n");
   // sync settings
   sync_settings(cfg->background.pixels, &decomp, &comp);
 
   pixel border_color = get_colored_pixel(cfg->background.color);
-  if (comp.cinfo.num_components > 3)
+  if (comp.cinfo.input_components > 3)
     border_color.use_alpha = 1;
+  else
+    border_color.use_alpha = 0;
 
   // write border and original image
   jpeg_start_compress(&comp.cinfo, true);
@@ -254,10 +272,32 @@ bool add_text_to_img(const config *cfg, const info_text *info) {
 
   // save new image
   // clean up writer, reader, and new file name
-  clean_up(&comp, &decomp, edit_file_name);
+  clean_up(&comp, &decomp);
 
-  // TODO get file base name and extension, by using str_utils.h
-  // TODO rename files
-  // rename();
+  // TODO refactor this section because it sucks
+  // get pointer to extension position
+  const char *start_of_extension = get_filename_ext(cfg->img);
+  // calculate lengths of things
+  int img_file_name_size = strlen(cfg->img);
+  int edited_file_name_size = img_file_name_size + EDITED_FILE_NAME_LEN + 1;
+  int file_name_no_ext_size = (img_file_name_size - strlen(start_of_extension));
+  char *edited_file_name = (char *)malloc(edited_file_name_size * sizeof(char));
+  strncpy(edited_file_name, cfg->img, file_name_no_ext_size);
+  memcpy(&edited_file_name[file_name_no_ext_size], EDITED_FILE_NAME,
+         EDITED_FILE_NAME_LEN);
+  memcpy(&edited_file_name[file_name_no_ext_size + EDITED_FILE_NAME_LEN],
+         start_of_extension, strlen(start_of_extension));
+  // add null terminator
+  edited_file_name[edited_file_name_size] = '\0';
+
+  // rename file
+  if (rename(tmp_edit_file_name, edited_file_name) != 0) {
+    printf("rename file failed.\n");
+    free(tmp_edit_file_name);
+    free(edited_file_name);
+    return false;
+  }
+  free(tmp_edit_file_name);
+  free(edited_file_name);
   return true;
 }

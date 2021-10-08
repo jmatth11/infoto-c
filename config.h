@@ -19,7 +19,7 @@
 /**
  * structure defining metadata info
  */
-typedef struct metadata_info {
+typedef struct {
   // prefix value
   char prefix[CONFIG_INFO_FIX_LEN];
   // postfix value

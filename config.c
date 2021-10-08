@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void init_config(config *cfg) { init_metadata_array(&cfg->metadata, 0); }
+void init_config(config *cfg) { init_metadata_array(&cfg->metadata, 1); }
 
 void free_config(config *cfg) {
   free(cfg->img);
@@ -29,7 +29,7 @@ void print_config(const config *cfg) {
   printf("\ty_offset_pct: %f\n", cfg->font.y_offset_pct);
   printf("}\n");
   printf("background: {\n");
-  printf("\tcolor: %s\n", cfg->background.color);
+  printf("\tcolor: %d\n", cfg->background.color);
   printf("\tpixels: %d\n", cfg->background.pixels);
   printf("}\n");
   printf("metadata: [\n");
