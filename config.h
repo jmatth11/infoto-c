@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #include "deps/array_template/array_template.h"
-#include "img_utils.h"
 
 /* define char array lengths */
 
@@ -46,6 +45,17 @@ typedef struct {
   // file name for TTF file
   char *ttf_file;
 } font_info;
+
+/**
+ * Enumeration of background colors.
+ */
+typedef enum {
+  BACKGROUND_BLACK,
+  BACKGROUND_BLUE,
+  BACKGROUND_GREEN,
+  BACKGROUND_RED,
+  BACKGROUND_WHITE
+} background_color;
 
 /**
  * structure defining background info

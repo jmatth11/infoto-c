@@ -96,15 +96,16 @@ int write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf) {
  * @param[in] color The pixel color for the background border.
  * @returns True if everything was successful, false otherwise.
  */
-bool write_background_rows(infoto_img_writer *writer, const void *input,
-                           void *data, const pixel color) {
+bool write_background_rows(infoto_img_writer *writer,
+                           const background_info background, void *data,
+                           const pixel color) {
   bool result = true;
   int row_size = writer->image_width * writer->num_components;
   uint8_t *row_buf = (uint8_t *)malloc(row_size * sizeof(uint8_t));
   for (int i = 0; i < row_size; i += writer->num_components) {
     write_pixel_to_buffer(color, i, row_buf);
   }
-  if (!writer->write_row(input, row_buf, data)) {
+  if (!writer->write_row(background, row_buf, data)) {
     result = false;
   }
   free(row_buf);

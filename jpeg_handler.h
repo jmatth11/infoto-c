@@ -8,12 +8,16 @@
 #include "info_text.h"
 
 /**
- * Add text and border to image, given config and info text.
+ * Write out border and text info to a given JPEG image.
+ * This function does not overwrite the original image but makes a new edited
+ * image file.
  *
- * @param[in] cfg The config object
+ * @param[in] filename The original filename.
+ * @param[in] background The background info.
  * @param[in] info The info text object
  * @return True if successful, False otherwise
  */
-bool add_text_to_img(const config *cfg, const info_text *info);
+bool write_jpeg_image(const char *filename, const background_info background,
+                      const info_text *info);
 
 #endif

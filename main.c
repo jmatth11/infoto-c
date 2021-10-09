@@ -7,7 +7,6 @@
 #include "json_parsing.h"
 
 // TODO
-// - create border around original image.
 // - add text with info to newly bordered image.
 // - replace bool and int return values with error_report objects
 //
@@ -34,7 +33,7 @@ int main(int argc, const char *argv[]) {
   for (int i = 0; i < info.size; ++i) {
     printf("value: %s\n", info.buffer[i]);
   }
-  if (!add_text_to_img(&cfg, &info)) {
+  if (!write_jpeg_image(cfg.img, cfg.background, &info)) {
     printf("failed adding text to image.\n");
   }
   free_config(&cfg);

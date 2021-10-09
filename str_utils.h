@@ -20,4 +20,12 @@ const char *get_filename_ext(const char *filename);
  */
 int inc_string_size(char **str, size_t size);
 
+/**
+ * Get a unique edit file name for the given filename.
+ *
+ * @param[in] filename The filename to derive new filename from.
+ * @returns New filename to identify the edit file.
+ */
+char *get_edit_file_name(const char *filename);
+
 #endif
