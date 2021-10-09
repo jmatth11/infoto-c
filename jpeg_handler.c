@@ -147,30 +147,6 @@ char *tmp_file_name(const char *file_name) {
 }
 
 /**
- * Write out full background row for number of background pixels on top or
- * bottom of image.
- *
- * @param [in] cfg The configuration for the image.
- * @param [in,out] comp The compressed jpeg object to write to.
- */
-void write_background_rows(const config *cfg, const pixel border_color,
-                           struct comp_img *comp) {
-  int row_size = comp->cinfo.image_width * comp->cinfo.num_components;
-
-  JSAMPROW row_stride = (JSAMPLE *)malloc(row_size * sizeof(JSAMPLE));
-  for (int i = 0; i < row_size; i += comp->cinfo.num_components) {
-    write_pixel_to_buffer(border_color, i, row_stride);
-  }
-  JSAMPARRAY row_array = &row_stride;
-
-  for (int i = 0; i < cfg->background.pixels; ++i) {
-    jpeg_write_scanlines(&comp->cinfo, row_array, 1);
-  }
-
-  free(row_stride);
-}
-
-/**
  * Copy image data from decomp into comp and handle border creation.
  *
  * @param[in] cfg The configuration object.
@@ -181,14 +157,13 @@ void write_background_rows(const config *cfg, const pixel border_color,
 void copy_read_data_to_write_buffer(const config *cfg, const pixel border_color,
                                     struct decomp_img *decomp,
                                     struct comp_img *comp) {
-  int num_comp = comp->cinfo.num_components;
-  int row_size = comp->cinfo.image_width * num_comp + 1;
+  int num_comp = comp->cinfo.input_components;
+  int row_size = comp->cinfo.image_width * num_comp;
   printf("row_size = %d\n", row_size);
 
   JSAMPROW row_stride = (JSAMPLE *)malloc(row_size * sizeof(JSAMPLE));
   JSAMPARRAY row_array = &row_stride;
 
-  // we are assuming comp.num_components and decomp.num_components are the same
   int read_width = decomp->cinfo.image_width * decomp->cinfo.num_components;
   printf("read_width = %d\n", read_width);
   int border_side_width = cfg->background.pixels * num_comp;
@@ -215,6 +190,40 @@ void copy_read_data_to_write_buffer(const config *cfg, const pixel border_color,
   free(row_stride);
 }
 
+bool init_jpeg_objects(const config *cfg, const char *tmp_file,
+                       struct decomp_img *decomp, struct comp_img *comp) {
+  // initialize decomp
+  if (!decomp_img(cfg->img, decomp)) {
+    printf("failed to read jpeg image\n");
+    return false;
+  }
+  // initialize comp
+  if (!comp_img(tmp_file, comp)) {
+    printf("failed creating jpeg writer\n");
+    return false;
+  }
+  // sync settings
+  sync_settings(cfg->background.pixels, decomp, comp);
+  return true;
+}
+
+bool write_jpeg_row(const void *input, uint8_t *buf, void *image) {
+  const config *cfg = (const config *)input;
+  struct comp_img *comp = (struct comp_img *)image;
+  JSAMPARRAY row_array = &buf;
+  for (int i = 0; i < cfg->background.pixels; ++i) {
+    jpeg_write_scanlines(&comp->cinfo, row_array, 1);
+  }
+  return true;
+}
+
+void init_stdio_jpeg_writer(const config *cfg, struct comp_img *comp,
+                            infoto_img_writer *writer) {
+  writer->image_width = comp->cinfo.image_width;
+  writer->num_components = comp->cinfo.num_components;
+  writer->write_row = &write_jpeg_row;
+}
+
 /**
  * Add text and border to image, given config and info text.
  *
@@ -230,6 +239,8 @@ bool add_text_to_img(const config *cfg, const info_text *info) {
   struct comp_img comp;
   memset(&comp, 0, sizeof(comp));
   // create tmp edit file name
+  // TODO change this to be the only name, we do not need a tmp file name and
+  // edited name
   char *tmp_edit_file_name = tmp_file_name(cfg->img);
   // set up error handling for decomp and comp structs
   if (setjmp(decomp.err.jmp_to_err_handler) ||
@@ -238,40 +249,34 @@ bool add_text_to_img(const config *cfg, const info_text *info) {
     free(tmp_edit_file_name);
     return false;
   }
-  // initialize decomp
-  if (!decomp_img(cfg->img, &decomp)) {
-    printf("failed to read jpeg image\n");
-    return false;
-  }
-  // initialize comp
-  if (!comp_img(tmp_edit_file_name, &comp)) {
-    printf("failed creating jpeg writer\n");
-    return false;
-  }
-  printf("past comp\n");
-  // sync settings
-  sync_settings(cfg->background.pixels, &decomp, &comp);
 
+  if (!init_jpeg_objects(cfg, tmp_edit_file_name, &decomp, &comp)) {
+    return false;
+  }
+  bool result = true;
   pixel border_color = get_colored_pixel(cfg->background.color);
+  border_color.use_alpha = 0;
   if (comp.cinfo.input_components > 3)
     border_color.use_alpha = 1;
-  else
-    border_color.use_alpha = 0;
+
+  infoto_img_writer background_writer;
+  init_stdio_jpeg_writer(cfg, &comp, &background_writer);
 
   // write border and original image
   jpeg_start_compress(&comp.cinfo, true);
 
-  // TODO try to refactor this to make it more reusable and less crappy
-  write_background_rows(cfg, border_color, &comp);
+  // TODO figure out if this needs to be changed anymore
+  write_background_rows(&background_writer, cfg, &comp, border_color);
 
   jpeg_start_decompress(&decomp.cinfo);
 
+  // TODO refactor
   copy_read_data_to_write_buffer(cfg, border_color, &decomp, &comp);
 
-  write_background_rows(cfg, border_color, &comp);
+  write_background_rows(&background_writer, cfg, &comp, border_color);
 
   // save new image
-  // clean up writer, reader, and new file name
+  // clean up writer, reader
   clean_up(&comp, &decomp);
 
   // TODO refactor this section because it sucks
@@ -293,11 +298,9 @@ bool add_text_to_img(const config *cfg, const info_text *info) {
   // rename file
   if (rename(tmp_edit_file_name, edited_file_name) != 0) {
     printf("rename file failed.\n");
-    free(tmp_edit_file_name);
-    free(edited_file_name);
-    return false;
+    result = false;
   }
   free(tmp_edit_file_name);
   free(edited_file_name);
-  return true;
+  return result;
 }

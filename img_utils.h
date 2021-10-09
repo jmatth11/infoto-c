@@ -1,6 +1,7 @@
 #ifndef INFOTO_IMG_UTILS
 #define INFOTO_IMG_UTILS
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /**
@@ -21,6 +22,14 @@ typedef enum {
   BACKGROUND_RED,
   BACKGROUND_WHITE
 } background_color;
+
+typedef bool (*write_row_fn)(const void *, uint8_t *, void *);
+
+typedef struct {
+  int image_width;
+  int num_components;
+  write_row_fn write_row;
+} infoto_img_writer;
 
 /**
  * Get background_color enum from the given string.
@@ -48,5 +57,17 @@ pixel get_colored_pixel(const background_color bgc);
  * @return Number of bytes written out.
  */
 int write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf);
+
+/**
+ * Write out background border of given color to image writer.
+ *
+ * @param[in] writer The writer.
+ * @param[in] input The input configuration.
+ * @param[in,out] data The object that manages image data.
+ * @param[in] color The pixel color for the background border.
+ * @returns True if everything was successful, false otherwise.
+ */
+bool write_background_rows(infoto_img_writer *writer, const void *input,
+                           void *data, const pixel color);
 
 #endif
