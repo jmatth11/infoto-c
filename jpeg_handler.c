@@ -84,7 +84,6 @@ bool init_decomp_img(const char *file_name, struct decomp_img *decomp) {
  * @returns True on success, false otherwise.
  */
 bool init_comp_img(const char *file_name, struct comp_img *comp) {
-  printf("comp_img\n");
   // set up the error handler
   comp->cinfo.err = jpeg_std_error(&comp->err.pub);
   // create the compress object
@@ -96,7 +95,6 @@ bool init_comp_img(const char *file_name, struct comp_img *comp) {
   }
   // set our std out destination (the file)
   jpeg_stdio_dest(&comp->cinfo, comp->file);
-  printf("end comp_img\n");
   return true;
 }
 
@@ -219,12 +217,12 @@ bool init_jpeg_objects(const char *filename, const int pixel_count,
                        struct comp_img *comp) {
   // initialize decomp
   if (!init_decomp_img(filename, decomp)) {
-    printf("failed to read jpeg image\n");
+    fprintf(stderr, "failed to read jpeg image\n");
     return false;
   }
   // initialize comp
   if (!init_comp_img(out_file, comp)) {
-    printf("failed creating jpeg writer\n");
+    fprintf(stderr, "failed creating jpeg writer\n");
     return false;
   }
   // sync settings

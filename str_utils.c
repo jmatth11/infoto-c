@@ -57,7 +57,7 @@ char *get_edit_file_name(const char *filename) {
   int img_file_name_len = strlen(filename);
   int file_name_no_ext_len = (img_file_name_len - extension_len);
   int edited_file_name_len = img_file_name_len + EDITED_FILE_NAME_LEN;
-  char *edited_file_name;
+  char *edited_file_name = NULL;
   inc_string_size(&edited_file_name, edited_file_name_len);
   strncpy(edited_file_name, filename, file_name_no_ext_len);
   memcpy(&edited_file_name[file_name_no_ext_len], EDITED_FILE_NAME,

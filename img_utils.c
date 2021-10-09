@@ -91,13 +91,13 @@ int write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf) {
  * Write out background border of given color to image writer.
  *
  * @param[in] writer The writer.
- * @param[in] input The input configuration.
  * @param[in,out] data The object that manages image data.
+ * @param[in] background The background information.
  * @param[in] color The pixel color for the background border.
  * @returns True if everything was successful, false otherwise.
  */
-bool write_background_rows(infoto_img_writer *writer,
-                           const background_info background, void *data,
+bool write_background_rows(infoto_img_writer *writer, void *data,
+                           const background_info background,
                            const pixel color) {
   bool result = true;
   int row_size = writer->image_width * writer->num_components;
