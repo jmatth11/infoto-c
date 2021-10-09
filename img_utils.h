@@ -8,6 +8,24 @@
 #include "config.h"
 
 /**
+ * Structure to hold decompression image info.
+ */
+typedef struct {
+  FILE *file;
+  void *_internal;
+  int (*get_num_components)(void *);
+  int (*get_image_width)(void *);
+  int (*get_image_height)(void *);
+  int (*get_color_space)(void *);
+  double (*get_gamma)(void *);
+  void (*set_num_components)(void *, int);
+  void (*set_image_width)(void *, int);
+  void (*set_image_height)(void *, int);
+  void (*set_color_space)(void *, int);
+  void (*set_gamma)(void *, double);
+} infoto_img_file;
+
+/**
  * Structure to represent a pixel in an image.
  */
 typedef struct {
