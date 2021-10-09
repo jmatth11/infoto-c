@@ -76,13 +76,13 @@ void get_entry_value_str(ExifEntry *entry, ExifByteOrder order, char *out) {
 bool get_exif_data(const char *file_name, ExifData **exif) {
   // check the access of the file
   if (access(file_name, F_OK) != 0) {
-    printf("file is not accessible: %s\n", file_name);
+    fprintf(stderr, "file is not accessible: %s\n", file_name);
     return false;
   }
   // read out EXIF data
   *exif = exif_data_new_from_file(file_name);
   if (exif == NULL) {
-    printf("could not read exif data for file: %s\n", file_name);
+    fprintf(stderr, "could not read exif data for file: %s\n", file_name);
     return false;
   }
   return true;
@@ -94,14 +94,14 @@ char *get_info_text_buffer(const ExifEntry *entry, const char *value,
   const size_t char_size = sizeof(char);
   char *buffer = (char *)malloc((char_size * buffer_size) + char_size);
   if (buffer == NULL) {
-    printf("malloc of buffer failed.\n");
+    fprintf(stderr, "malloc of buffer failed.\n");
     return false;
   }
   // get formated string
   // buffer_N is number of characters in buffer, not including null character
   const int buffer_N = sprintf(buffer, "%s%s%s", mi.prefix, value, mi.postfix);
   if (buffer_N < 0) {
-    printf("sprintf failed\n");
+    fprintf(stderr, "sprintf failed\n");
     return false;
   }
   // force uppercase
@@ -130,14 +130,14 @@ bool read_exif_data(config *cfg, info_text *output) {
     // grab the tag name
     ExifTag tag = exif_tag_from_name(mi.name);
     if (tag == 0) {
-      printf("tag not found. searching for: %s\n", mi.name);
+      fprintf(stderr, "tag not found. searching for: %s\n", mi.name);
       continue;
     }
     // grab the entry
     // this object is owned by the EXIF data object, do not unref
     ExifEntry *entry = exif_data_get_entry(exif, tag);
     if (entry == NULL) {
-      printf("failed to get %s entry\n", mi.name);
+      fprintf(stderr, "failed to get %s entry\n", mi.name);
       return false;
     }
     // allocate more memory for our buffer if it's not big enough
@@ -145,7 +145,7 @@ bool read_exif_data(config *cfg, info_text *output) {
       // value_len is size + sizeof(char) for null character
       value_len = inc_string_size(&value, entry->size);
       if (value_len == -1) {
-        printf("inc_string_size failed.\n");
+        fprintf(stderr, "inc_string_size failed.\n");
         return false;
       }
     }
@@ -156,7 +156,7 @@ bool read_exif_data(config *cfg, info_text *output) {
     // get buffer for info text
     char *buffer = get_info_text_buffer(entry, value, mi);
     if (buffer == NULL) {
-      printf("info text buffer failed.\n");
+      fprintf(stderr, "info text buffer failed.\n");
       return false;
     }
     output->buffer[i] = buffer;
