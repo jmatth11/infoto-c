@@ -1,7 +1,8 @@
 
 CC=gcc
 CFLAGS=-g -Wall -Werror
-LIBS=-lexif -ljpeg
+INCLUDES=-I/usr/include/freetype2 -I/usr/include/libpng16
+LIBS=-lexif -ljpeg -lfreetype
 DEPS=deps/frozen/frozen.o
 OBJ=obj
 BIN=bin
@@ -22,7 +23,7 @@ deps/%.o: deps/%.c
 
 # rule for top level source files
 $(OBJ)/%.o: %.c
-	gcc -c -o $@ $< $(CFLAGS)
+	gcc -c -o $@ $< $(CFLAGS) $(INCLUDES)
 
 clean:
 	rm $(BIN)/$(TARGET) $(OBJ)/*.o
