@@ -84,8 +84,9 @@ void infoto_font_handler_free(struct infoto_font_handler *handler) {
  * @param[out] str The infoto_glyph_str to initialize.
  * @returns True if successful, false otherwise.
  */
-bool infoto_glyph_str_init(struct infoto_glyph_str *str) {
-  return init_infoto_bitmap_glyphs_array(&str->glyphs, 1);
+bool infoto_glyph_str_init(struct infoto_glyph_str **str) {
+  (*str) = (struct infoto_glyph_str *)malloc(sizeof(struct infoto_glyph_str));
+  return init_infoto_bitmap_glyphs_array(&(*str)->glyphs, 1);
 }
 
 /**
@@ -145,6 +146,7 @@ void infoto_glyph_str_free(struct infoto_glyph_str *str) {
     FT_Done_Glyph(tmp);
   }
   free_infoto_bitmap_glyphs_array(&str->glyphs);
+  free(str);
 }
 
 /**

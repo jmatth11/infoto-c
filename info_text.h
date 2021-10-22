@@ -25,7 +25,7 @@ int info_text_init(info_text *info, size_t size, char *sep);
  * @param[in] info The info text object
  * @return The formatted string
  */
-char *info_text_to_string(info_text *info);
+char *info_text_to_string(const info_text *info);
 
 /**
  * Free the internal strings and array.

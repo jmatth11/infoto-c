@@ -49,7 +49,7 @@ void infoto_font_handler_free(infoto_font_handler *handler);
  * @param[out] str The infoto_glyph_str to initialize.
  * @returns True if successful, false otherwise.
  */
-bool infoto_glyph_str_init(infoto_glyph_str *str);
+bool infoto_glyph_str_init(infoto_glyph_str **str);
 
 /**
  * Get the width of the string of glyphs.

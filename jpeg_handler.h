@@ -1,23 +1,24 @@
 #ifndef INFOTO_JPEG_HANDLER_H
 #define INFOTO_JPEG_HANDLER_H
 
-#include <stdbool.h>
-#include <stdio.h>
-
-#include "config.h"
-#include "info_text.h"
+#include "img_utils.h"
+#include "ttf_util.h"
 
 /**
- * Write out border and text info to a given JPEG image.
- * This function does not overwrite the original image but makes a new edited
- * image file.
+ * Initialize a infoto JPEG handler in the given img handler interface.
  *
- * @param[in] filename The original filename.
- * @param[in] background The background info.
- * @param[in] info The info text object
- * @return True if successful, False otherwise
+ * @param[out] img_handler The image handler interface to populate.
+ * @param[in] font_handler The font handler for the JPEG handler to reference.
  */
-bool write_jpeg_image(const char *filename, const background_info background,
-                      const info_text *info);
+void infoto_jpeg_handler_init(infoto_img_handler *img_handler,
+                              infoto_font_handler *font_handler);
+
+/**
+ * Free the internal JPEG handler.
+ * This function does not free the font handler given at initialization.
+ *
+ * @param[out] img_handler The img handler to free.
+ */
+void infoto_jpeg_handler_free(infoto_img_handler *img_handler);
 
 #endif

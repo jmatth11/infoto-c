@@ -1,5 +1,9 @@
+#include <stdbool.h>
+#include <stdio.h>
+
+#include "config.h"
+#include "info_text.h"
 #include "jpeg_handler.h"
-#include "img_utils.h"
 #include "str_utils.h"
 
 #include <jpeglib.h>
@@ -10,6 +14,13 @@
 // temp file name constant values
 #define TMP_FILE_NAME "-edited.tmp"
 #define TMP_FILE_NAME_LEN strlen(TMP_FILE_NAME)
+
+/**
+ * JPEG handler structure.
+ */
+struct infoto_jpeg_handler {
+  infoto_font_handler *font_handler;
+};
 
 /**
  * Custom jpeg err structure
@@ -58,7 +69,7 @@ struct comp_img {
  * @param[out] decomp The decompressed image to initialize.
  * @returns True on success, false otherwise.
  */
-bool init_decomp_img(const char *file_name, struct decomp_img *decomp) {
+static bool init_decomp_img(const char *file_name, struct decomp_img *decomp) {
   // open file
   if ((decomp->file = fopen(file_name, "rb")) == NULL) {
     fprintf(stderr, "can't open %s\n", file_name);
@@ -83,7 +94,7 @@ bool init_decomp_img(const char *file_name, struct decomp_img *decomp) {
  * @param[out] comp The compressed image to initialize.
  * @returns True on success, false otherwise.
  */
-bool init_comp_img(const char *file_name, struct comp_img *comp) {
+static bool init_comp_img(const char *file_name, struct comp_img *comp) {
   // set up the error handler
   comp->cinfo.err = jpeg_std_error(&comp->err.pub);
   // create the compress object
@@ -98,7 +109,7 @@ bool init_comp_img(const char *file_name, struct comp_img *comp) {
   return true;
 }
 
-void close_jpeg_img(j_common_ptr info) {
+static void close_jpeg_img(j_common_ptr info) {
   // finish up objects
   if (info->is_decompressor) {
     jpeg_finish_decompress((j_decompress_ptr)info);
@@ -116,8 +127,8 @@ void close_jpeg_img(j_common_ptr info) {
  * @param[out] decomp The decompressed image.
  * @param[out] edit_name The filename for the edited image.
  */
-void clean_up(struct comp_img *comp, struct decomp_img *decomp,
-              char *edit_name) {
+static void clean_up(struct comp_img *comp, struct decomp_img *decomp,
+                     char *edit_name) {
   // close jpen imgs
   close_jpeg_img((j_common_ptr)&comp->cinfo);
   close_jpeg_img((j_common_ptr)&decomp->cinfo);
@@ -141,8 +152,9 @@ void clean_up(struct comp_img *comp, struct decomp_img *decomp,
  * @param[in] decomp The decompressed image.
  * @param[in,out] comp The compressed image.
  */
-void sync_settings(const int added_pixels, const struct decomp_img *decomp,
-                   struct comp_img *comp) {
+static void sync_settings(const int added_pixels,
+                          const struct decomp_img *decomp,
+                          struct comp_img *comp) {
   // grab our decomp img's width and height + the specified added pixels
   const int border = added_pixels * 2;
   comp->cinfo.image_width = decomp->cinfo.image_width + border;
@@ -167,10 +179,10 @@ void sync_settings(const int added_pixels, const struct decomp_img *decomp,
  * @param[in] decomp The decompressed image to read from.
  * @param[in,out] comp The compressed image to write to.
  */
-void copy_read_data_to_write_buffer(const background_info background,
-                                    const pixel border_color,
-                                    struct decomp_img *decomp,
-                                    struct comp_img *comp) {
+static void copy_read_data_to_write_buffer(const background_info background,
+                                           const pixel border_color,
+                                           struct decomp_img *decomp,
+                                           struct comp_img *comp) {
   int num_comp = comp->cinfo.input_components;
   int row_size = comp->cinfo.image_width * num_comp;
 
@@ -186,17 +198,19 @@ void copy_read_data_to_write_buffer(const background_info background,
       (j_common_ptr)&decomp->cinfo, JPOOL_IMAGE, read_width, 1);
 
   while (decomp->cinfo.output_scanline < decomp->cinfo.output_height) {
+    // writing side border
     for (int i = 0; i < border_side_width; i += num_comp) {
       write_pixel_to_buffer(border_color, i, row_stride);
     }
-    // TODO colors are bright pink. bytes might be off
+    // read in data from decompressed jpeg file
     jpeg_read_scanlines(&decomp->cinfo, buffer, 1);
     memcpy(&row_stride[border_side_width], buffer[0], read_width);
-
+    // writing other side border
     for (int i = border_and_read_width;
          i < (border_and_read_width + border_side_width); i += num_comp) {
       write_pixel_to_buffer(border_color, i, row_stride);
     }
+    // write out to comressed jpeg file
     jpeg_write_scanlines(&comp->cinfo, row_array, 1);
   }
   free(row_stride);
@@ -212,9 +226,9 @@ void copy_read_data_to_write_buffer(const background_info background,
  * @param[out] comp The comp_img object to initialize.
  * @returns True on success, false otherwise.
  */
-bool init_jpeg_objects(const char *filename, const int pixel_count,
-                       const char *out_file, struct decomp_img *decomp,
-                       struct comp_img *comp) {
+static bool init_jpeg_objects(const char *filename, const int pixel_count,
+                              const char *out_file, struct decomp_img *decomp,
+                              struct comp_img *comp) {
   // initialize decomp
   if (!init_decomp_img(filename, decomp)) {
     fprintf(stderr, "failed to read jpeg image\n");
@@ -234,20 +248,17 @@ bool init_jpeg_objects(const char *filename, const int pixel_count,
 }
 
 /**
- * Write given buffer to a JPEG image.
+ * Write a given buffer to a JPEG image.
  *
  * @param[in] background The background info.
  * @param[in] buf The buffer to write out.
  * @param[in,out] image The compression image object to write to.
  * @returns True for success, false otherwise.
  */
-bool write_jpeg_row(const background_info background, uint8_t *buf,
-                    void *image) {
+static bool write_jpeg_matrix(const background_info background, uint8_t **buf,
+                              void *image) {
   struct comp_img *comp = (struct comp_img *)image;
-  JSAMPARRAY row_array = &buf;
-  for (int i = 0; i < background.pixels; ++i) {
-    jpeg_write_scanlines(&comp->cinfo, row_array, 1);
-  }
+  jpeg_write_scanlines(&comp->cinfo, buf, background.pixels);
   return true;
 }
 
@@ -257,10 +268,10 @@ bool write_jpeg_row(const background_info background, uint8_t *buf,
  * @param[in] comp The comp_img structure.
  * @param[out] writer The infoto_img_writer to initialize.
  */
-void init_jpeg_writer(struct comp_img *comp, infoto_img_writer *writer) {
+static void init_jpeg_writer(struct comp_img *comp, infoto_img_writer *writer) {
   writer->image_width = comp->cinfo.image_width;
   writer->num_components = comp->cinfo.num_components;
-  writer->write_row = &write_jpeg_row;
+  writer->write_matrix = &write_jpeg_matrix;
 }
 
 /**
@@ -273,8 +284,13 @@ void init_jpeg_writer(struct comp_img *comp, infoto_img_writer *writer) {
  * @param[in] info The info text object
  * @return True if successful, False otherwise
  */
-bool write_jpeg_image(const char *filename, const background_info background,
-                      const info_text *info) {
+static bool write_jpeg_image(infoto_img_handler *handler, const char *filename,
+                             const background_info background,
+                             const info_text *info) {
+
+  // TODO use the jpeg handler
+  struct infoto_jpeg_handler *jpeg_handler =
+      (struct infoto_jpeg_handler *)handler->_internal;
   // create reader for img
   struct decomp_img decomp;
   memset(&decomp, 0, sizeof(decomp));
@@ -300,19 +316,62 @@ bool write_jpeg_image(const char *filename, const background_info background,
   if (comp.cinfo.input_components > 3)
     border_color.use_alpha = 1;
 
+  // generate glyph string from info text
+  infoto_glyph_str *glyph_str;
+  infoto_glyph_str_init(&glyph_str);
+  char *info_str = info_text_to_string(info);
+  create_glyph_str_from_text(jpeg_handler->font_handler, glyph_str, info_str);
+  // free the info_str
+  free(info_str);
+
   infoto_img_writer background_writer;
   init_jpeg_writer(&comp, &background_writer);
 
   // TODO figure out if this needs to be changed anymore
-  write_background_rows(&background_writer, &comp, background, border_color);
+  // don't write out glyph string on top border
+  write_background_rows(&background_writer, &comp, background, border_color,
+                        NULL);
 
   // TODO refactor
   copy_read_data_to_write_buffer(background, border_color, &decomp, &comp);
 
-  write_background_rows(&background_writer, &comp, background, border_color);
+  // write out glyph string on bottom border
+  write_background_rows(&background_writer, &comp, background, border_color,
+                        glyph_str);
 
+  // free the glyph string
+  infoto_glyph_str_free(glyph_str);
+  glyph_str = NULL;
   // save new image
   // clean up writer, reader, and edit file name
   clean_up(&comp, &decomp, edit_file_name);
   return true;
+}
+
+/**
+ * Initialize a infoto JPEG handler in the given img handler interface.
+ *
+ * @param[out] img_handler The image handler interface to populate.
+ * @param[in] font_handler The font handler for the JPEG handler to reference.
+ */
+void infoto_jpeg_handler_init(infoto_img_handler *img_handler,
+                              infoto_font_handler *font_handler) {
+  struct infoto_jpeg_handler *local =
+      (struct infoto_jpeg_handler *)malloc(sizeof(struct infoto_jpeg_handler));
+  local->font_handler = font_handler;
+  img_handler->_internal = local;
+  img_handler->write_image = write_jpeg_image;
+}
+
+/**
+ * Free the internal JPEG handler.
+ * This function does not free the font handler given at initialization.
+ *
+ * @param[out] img_handler The img handler to free.
+ */
+void infoto_jpeg_handler_free(infoto_img_handler *img_handler) {
+  struct infoto_jpeg_handler *local =
+      (struct infoto_jpeg_handler *)img_handler->_internal;
+  local->font_handler = NULL;
+  free(local);
 }

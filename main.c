@@ -33,10 +33,13 @@ int main(int argc, const char *argv[]) {
   for (int i = 0; i < info.size; ++i) {
     printf("value: %s\n", info.buffer[i]);
   }
-  if (!write_jpeg_image(cfg.img, cfg.background, &info)) {
+  infoto_img_handler handler;
+  infoto_jpeg_handler_init(&handler, NULL);
+  if (!handler.write_image(&handler, cfg.img, cfg.background, &info)) {
     printf("failed adding text to image.\n");
   }
-  free_config(&cfg);
   info_text_free(&info);
+  infoto_jpeg_handler_free(&handler);
+  free_config(&cfg);
   return 0;
 }

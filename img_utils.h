@@ -6,6 +6,19 @@
 #include <stdio.h>
 
 #include "config.h"
+#include "info_text.h"
+#include "ttf_util.h"
+
+/**
+ * Infoto Image Handler interface.
+ * Handles everything necessary to write info text to an image.
+ */
+struct infoto_img_handler {
+  void *_internal;
+  bool (*write_image)(struct infoto_img_handler *, const char *,
+                      const background_info, const info_text *);
+};
+typedef struct infoto_img_handler infoto_img_handler;
 
 /**
  * Structure to represent a pixel in an image.
@@ -19,9 +32,9 @@ typedef struct {
 } pixel;
 
 /**
- * Function pointer type for writing a single row to an image.
+ * Function pointer type for writing a matrix to an image.
  */
-typedef bool (*write_row_fn)(const background_info, uint8_t *, void *);
+typedef bool (*write_matrix_fn)(const background_info, uint8_t **, void *);
 
 /**
  * Generic writer object for an image.
@@ -29,7 +42,7 @@ typedef bool (*write_row_fn)(const background_info, uint8_t *, void *);
 typedef struct {
   int image_width;
   int num_components;
-  write_row_fn write_row;
+  write_matrix_fn write_matrix;
 } infoto_img_writer;
 
 /**
@@ -63,12 +76,15 @@ int write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf);
  * Write out background border of given color to image writer.
  *
  * @param[in] writer The writer.
- * @param[in,out] data The object that manages image data.
+ * @param[in,out] image The object that manages image data.
  * @param[in] background The background information.
  * @param[in] color The pixel color for the background border.
+ * @param[in] glyph_str The glyph string to write out to the background. Pass
+ * NULL if nothing should be written out.
  * @returns True if everything was successful, false otherwise.
  */
-bool write_background_rows(infoto_img_writer *writer, void *data,
-                           const background_info background, const pixel color);
+bool write_background_rows(infoto_img_writer *writer, void *image,
+                           const background_info background, const pixel color,
+                           infoto_glyph_str *glyph_str);
 
 #endif
