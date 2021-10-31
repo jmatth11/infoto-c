@@ -321,7 +321,6 @@ static bool write_jpeg_image(infoto_img_handler *handler, const char *filename,
   infoto_glyph_str *glyph_str;
   infoto_glyph_str_init(&glyph_str);
   char *info_str = info_text_to_string(info);
-  printf("info_str = '%s'\n", info_str);
   bool success = create_glyph_str_from_text(jpeg_handler->font_handler,
                                             glyph_str, info_str);
   // free the info_str

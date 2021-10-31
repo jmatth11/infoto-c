@@ -19,23 +19,19 @@
 
 int main(int argc, const char *argv[]) {
   if (argc < 2) {
-    printf("please supply a jpeg file.\n");
+    fprintf(stderr, "please supply a jpeg file.\n");
     return 1;
   }
   config cfg;
   if (!config_from_json_file(argv[1], &cfg)) {
-    printf("generating config object from json file failed\n");
+    fprintf(stderr, "generating config object from json file failed\n");
     return 1;
   }
-  print_config(&cfg);
   info_text info;
   info_text_init(&info, cfg.metadata.len, " | ");
   if (!read_exif_data(&cfg, &info)) {
-    printf("reading exif data failed.\n");
+    fprintf(stderr, "reading exif data failed.\n");
     return 1;
-  }
-  for (int i = 0; i < info.size; ++i) {
-    printf("value: %s\n", info.buffer[i]);
   }
   infoto_font_handler *font_handler;
   if (!infoto_font_handler_init(&font_handler)) {
@@ -50,7 +46,7 @@ int main(int argc, const char *argv[]) {
   infoto_img_handler handler;
   infoto_jpeg_handler_init(&handler, font_handler);
   if (!handler.write_image(&handler, cfg.img, cfg.background, &info)) {
-    printf("failed adding text to image.\n");
+    fprintf(stderr, "failed adding text to image.\n");
   }
   info_text_free(&info);
   infoto_font_handler_free(&font_handler);
