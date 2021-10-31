@@ -1,5 +1,7 @@
 #include "info_text.h"
 
+#include <string.h>
+
 /**
  * Initialize Info Text object.
  *
@@ -25,8 +27,28 @@ int info_text_init(info_text *info, size_t size, char *sep) {
  * @param[in] info The info text object
  * @return The formatted string
  */
-char *info_text_to_string(info_text *info) {
+char *info_text_to_string(const info_text *info) {
   char *buffer = NULL;
+  size_t sep_len = strlen(info->separator);
+  size_t length = 0;
+  for (int i = 0; i < info->size; ++i) {
+    length += strlen(info->buffer[i]);
+    length += sep_len;
+  }
+  length = length - sep_len + 1;
+  buffer = (char *)malloc(sizeof(char) * length);
+  size_t str_pos = 0;
+  for (int i = 0; i < info->size; ++i) {
+    char *value = info->buffer[i];
+    size_t value_len = strlen(value);
+    memcpy(&buffer[str_pos], value, value_len);
+    str_pos += value_len;
+    char *sep = info->separator;
+    size_t sep_len = strlen(sep);
+    memcpy(&buffer[str_pos], sep, sep_len);
+    str_pos += sep_len;
+  }
+  buffer[length - 1] = '\0';
   return buffer;
 }
 

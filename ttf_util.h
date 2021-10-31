@@ -7,6 +7,9 @@
 
 #include <stdbool.h>
 
+#define WHITE_SPACE_SIZE 20
+#define KERN_SIZE 4
+
 /**
  * Structure for handling TTF library specific functionality.
  */
@@ -23,7 +26,7 @@ typedef struct infoto_glyph_str infoto_glyph_str;
  * @param[out] handler The infoto_font_handler to initialize.
  * @returns True if successful, false otherwise.
  */
-bool infoto_font_handler_init(infoto_font_handler *handler);
+bool infoto_font_handler_init(infoto_font_handler **handler);
 
 /**
  * Load TTF font file with the given size.
@@ -41,7 +44,7 @@ bool infoto_font_handler_load_font(infoto_font_handler *handler,
  *
  * @param[out] handler The infoto_font_handler to free.
  */
-void infoto_font_handler_free(infoto_font_handler *handler);
+void infoto_font_handler_free(infoto_font_handler **handler);
 
 /**
  * Initialize an infoto_glyph_str structure.
@@ -66,6 +69,24 @@ int infoto_glyph_str_get_width(const infoto_glyph_str *str);
  * @returns The height of the string.
  */
 int infoto_glyph_str_get_height(const infoto_glyph_str *str);
+
+/**
+ * Get the len of the glyph str.
+ *
+ * @param[in] str The infoto_glyph_str.
+ * @returns The number of glyphs.
+ */
+size_t infoto_glyph_str_len(const struct infoto_glyph_str *str);
+
+/**
+ * Get the glyph at the given index.
+ *
+ * @params[in] str The infoto_glyph_str.
+ * @params[in] idx The index.
+ * @returns FT_Glyph object, NULL if index out of bounds.
+ */
+FT_Glyph infoto_glyph_str_get_glyph(const struct infoto_glyph_str *str,
+                                    int idx);
 
 /**
  * Add glyph to the glyph string.

@@ -1,4 +1,5 @@
 *.o
 infoto
 deps/*
+fonts/
 

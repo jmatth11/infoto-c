@@ -30,12 +30,17 @@ struct infoto_glyph_str {
  * @param[out] handler The infoto_font_handler to initialize.
  * @returns True if successful, false otherwise.
  */
-bool infoto_font_handler_init(struct infoto_font_handler *handler) {
-  int error = FT_Init_FreeType(&handler->library);
+bool infoto_font_handler_init(struct infoto_font_handler **handler) {
+  struct infoto_font_handler *local =
+      (struct infoto_font_handler *)malloc(sizeof(struct infoto_font_handler));
+
+  int error = FT_Init_FreeType(&local->library);
   if (error) {
+    free(local);
     fprintf(stderr, "failed to initialize free type library.\n");
     return false;
   }
+  *handler = local;
   return true;
 }
 
@@ -50,13 +55,14 @@ bool infoto_font_handler_init(struct infoto_font_handler *handler) {
 bool infoto_font_handler_load_font(struct infoto_font_handler *handler,
                                    const char *ttf_file, int size) {
   // read ttf font. 0 grabs the first font (some ttf files have multiple fonts)
-  int error = FT_New_Face(handler->library, ttf_file, 0, &handler->face);
+  FT_Error error = FT_New_Face(handler->library, ttf_file, 0, &handler->face);
   if (error == FT_Err_Unknown_File_Format) {
     fprintf(stderr, "Font file given could not be opened and read: \"%s\"\n",
             ttf_file);
     return false;
   } else if (error) {
-    fprintf(stderr, "font file failed to load.\n");
+    fprintf(stderr, "font file failed to load with code: %s.\n",
+            FT_Error_String(error));
     return false;
   }
   // set width and height. 0 width means height param is used for both.
@@ -73,9 +79,11 @@ bool infoto_font_handler_load_font(struct infoto_font_handler *handler,
  *
  * @param[out] handler The infoto_font_handler to free.
  */
-void infoto_font_handler_free(struct infoto_font_handler *handler) {
-  FT_Done_Face(handler->face);
-  FT_Done_FreeType(handler->library);
+void infoto_font_handler_free(struct infoto_font_handler **handler) {
+  FT_Done_Face((*handler)->face);
+  FT_Done_FreeType((*handler)->library);
+  free(*handler);
+  *handler = NULL;
 }
 
 /**
@@ -101,7 +109,11 @@ int infoto_glyph_str_get_width(const struct infoto_glyph_str *str) {
     FT_Glyph out;
     get_infoto_bitmap_glyphs_array(&str->glyphs, i, &out);
     FT_BitmapGlyph tmp = (FT_BitmapGlyph)out;
-    width += tmp->bitmap.width;
+    size_t glyph_width = tmp->bitmap.width;
+    if (glyph_width == 0) {
+      glyph_width = WHITE_SPACE_SIZE;
+    }
+    width += (glyph_width + KERN_SIZE);
   }
   return width;
 }
@@ -121,6 +133,31 @@ int infoto_glyph_str_get_height(const struct infoto_glyph_str *str) {
     height = tmp->bitmap.rows;
   }
   return height;
+}
+
+/**
+ * Get the len of the glyph str.
+ *
+ * @param[in] str The infoto_glyph_str.
+ * @returns The number of glyphs.
+ */
+size_t infoto_glyph_str_len(const struct infoto_glyph_str *str) {
+  return str->glyphs.len;
+}
+
+/**
+ * Get the glyph at the given index.
+ *
+ * @params[in] str The infoto_glyph_str.
+ * @params[in] idx The index.
+ * @returns FT_Glyph object, NULL if index out of bounds.
+ */
+FT_Glyph infoto_glyph_str_get_glyph(const struct infoto_glyph_str *str,
+                                    int idx) {
+  if (idx < 0 || idx >= str->glyphs.len) {
+    return NULL;
+  }
+  return str->glyphs.infoto_bitmap_glyphs_data[idx];
 }
 
 /**
@@ -160,10 +197,13 @@ void infoto_glyph_str_free(struct infoto_glyph_str *str) {
 bool create_glyph_str_from_text(struct infoto_font_handler *handler,
                                 struct infoto_glyph_str *glyph_str,
                                 const char *text) {
+  if (text == NULL) {
+    fprintf(stderr, "text was null.\n");
+    return false;
+  }
   int text_len = strlen(text);
   int error = 0;
   FT_GlyphSlot slot = handler->face->glyph;
-  // TODO write out
   for (int i = 0; i < text_len; ++i) {
     error = FT_Load_Char(handler->face, text[i], FT_LOAD_RENDER);
     if (error) {
@@ -179,14 +219,6 @@ bool create_glyph_str_from_text(struct infoto_font_handler *handler,
               error);
       return false;
     }
-
-    // TODO write out slot->bitmap to buffer image.
-    /**
-     * draw_bitmap(&slot->bitmap,
-     *           pen_x + slot->bitmap_left,
-     *           pen_y - slot->bitmap_top);
-     */
-    // pen_x += slot->advance.x >> 6;
   }
   return true;
 }

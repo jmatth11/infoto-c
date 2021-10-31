@@ -118,6 +118,7 @@ bool read_exif_data(config *cfg, info_text *output) {
   if (!get_exif_data(cfg->img, &exif)) {
     return false;
   }
+  bool result = true;
   ExifByteOrder byte_order = exif_data_get_byte_order(exif);
   // have a reusable value buffer
   char *value = NULL;
@@ -138,7 +139,8 @@ bool read_exif_data(config *cfg, info_text *output) {
     ExifEntry *entry = exif_data_get_entry(exif, tag);
     if (entry == NULL) {
       fprintf(stderr, "failed to get %s entry\n", mi.name);
-      return false;
+      result = false;
+      break;
     }
     // allocate more memory for our buffer if it's not big enough
     if (value_len <= entry->size) {
@@ -146,7 +148,8 @@ bool read_exif_data(config *cfg, info_text *output) {
       value_len = inc_string_size(&value, entry->size);
       if (value_len == -1) {
         fprintf(stderr, "inc_string_size failed.\n");
-        return false;
+        result = false;
+        break;
       }
     }
     // clear out value buffer
@@ -157,11 +160,12 @@ bool read_exif_data(config *cfg, info_text *output) {
     char *buffer = get_info_text_buffer(entry, value, mi);
     if (buffer == NULL) {
       fprintf(stderr, "info text buffer failed.\n");
-      return false;
+      result = false;
+      break;
     }
     output->buffer[i] = buffer;
   }
   // free value buffer
   free(value);
-  return true;
+  return result;
 }

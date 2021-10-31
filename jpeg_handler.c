@@ -316,16 +316,26 @@ static bool write_jpeg_image(infoto_img_handler *handler, const char *filename,
   if (comp.cinfo.input_components > 3)
     border_color.use_alpha = 1;
 
+  // TODO break out into functions to cleanly handle cleaning up objects better
   // generate glyph string from info text
   infoto_glyph_str *glyph_str;
   infoto_glyph_str_init(&glyph_str);
   char *info_str = info_text_to_string(info);
-  create_glyph_str_from_text(jpeg_handler->font_handler, glyph_str, info_str);
+  printf("info_str = '%s'\n", info_str);
+  bool success = create_glyph_str_from_text(jpeg_handler->font_handler,
+                                            glyph_str, info_str);
   // free the info_str
   free(info_str);
+  if (!success) {
+    // TODO this doesn't handle freeing other initialized objects
+    fprintf(stderr, "failed to create glyph string from text.\n");
+    return false;
+  }
 
   infoto_img_writer background_writer;
   init_jpeg_writer(&comp, &background_writer);
+
+  // TODO handle return values of these calls
 
   // TODO figure out if this needs to be changed anymore
   // don't write out glyph string on top border
