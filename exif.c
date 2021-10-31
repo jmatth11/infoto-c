@@ -113,7 +113,14 @@ char *get_info_text_buffer(const ExifEntry *entry, const char *value,
   return buffer;
 }
 
-bool read_exif_data(config *cfg, info_text *output) {
+/**
+ * Read EXIF data from JPEG file.
+ *
+ * @param cfg The config structure
+ * @param output An info text buffer object
+ * @returns bool true for success, false otherwise
+ */
+bool infoto_read_exif_data(config *cfg, info_text *output) {
   ExifData *exif = NULL;
   if (!get_exif_data(cfg->img, &exif)) {
     return false;
@@ -145,7 +152,7 @@ bool read_exif_data(config *cfg, info_text *output) {
     // allocate more memory for our buffer if it's not big enough
     if (value_len <= entry->size) {
       // value_len is size + sizeof(char) for null character
-      value_len = inc_string_size(&value, entry->size);
+      value_len = infoto_inc_string_size(&value, entry->size);
       if (value_len == -1) {
         fprintf(stderr, "inc_string_size failed.\n");
         result = false;

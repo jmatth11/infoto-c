@@ -10,4 +10,4 @@
  * @param output An info text buffer object
  * @returns bool true for success, false otherwise
  */
-bool read_exif_data(config *cfg, info_text *output);
+bool infoto_read_exif_data(config *cfg, info_text *output);

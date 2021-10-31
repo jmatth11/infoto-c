@@ -16,7 +16,7 @@
  * @return background_color from the given string, BACKGROUND_WHITE is default
  * if the name cannot be resolved.
  */
-background_color get_background_color_from_string(const char *s) {
+background_color infoto_get_background_color_from_string(const char *s) {
   if (strcmp(INFOTO_BACKGROUND_BLACK, s) == 0)
     return BACKGROUND_BLACK;
   if (strcmp(INFOTO_BACKGROUND_BLUE, s) == 0)
@@ -35,7 +35,7 @@ background_color get_background_color_from_string(const char *s) {
  * @param[in] bgc The background color enum.
  * @return pixel structure that represents the background color enum.
  */
-pixel get_colored_pixel(const background_color bgc) {
+pixel infoto_get_colored_pixel(const background_color bgc) {
   pixel p;
   p.alpha = 255;
   switch (bgc) {
@@ -74,7 +74,7 @@ pixel get_colored_pixel(const background_color bgc) {
  * @param[in] v The value to apply to rgb values.
  * @returns The pixel structure.
  */
-pixel pixel_from_single_value(const uint8_t v) {
+pixel infoto_pixel_from_single_value(const uint8_t v) {
   pixel p;
   p.alpha = 255;
   p.r = v;
@@ -91,7 +91,7 @@ pixel pixel_from_single_value(const uint8_t v) {
  * @param[in,out] buf Buffer to write to.
  * @return Number of bytes written out.
  */
-int write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf) {
+int infoto_write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf) {
   buf[i] = p.r;
   buf[i + 1] = p.g;
   buf[i + 2] = p.b;
@@ -112,8 +112,9 @@ int write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf) {
  * @param[in] glyph_str The glyph string to write out.
  * @returns True if successful, false otherwise.
  */
-bool write_glyph_str(uint8_t **matrix_buf, int num_components, int row_size,
-                     int height, infoto_glyph_str *glyph_str) {
+bool infoto_write_glyph_str(uint8_t **matrix_buf, int num_components,
+                            int row_size, int height,
+                            const infoto_glyph_str *glyph_str) {
   if (glyph_str == NULL) {
     return true;
   }
@@ -142,10 +143,10 @@ bool write_glyph_str(uint8_t **matrix_buf, int num_components, int row_size,
         if (i < 0 || j < 0 || i >= height || j >= row_size) {
           continue;
         }
-        pixel color = pixel_from_single_value(
+        pixel color = infoto_pixel_from_single_value(
             255 ^ bitmap_glyph->bitmap.buffer[q * x_max + p]);
         color.use_alpha = num_components == 4 ? true : false;
-        write_pixel_to_buffer(color, j, matrix_buf[i]);
+        infoto_write_pixel_to_buffer(color, j, matrix_buf[i]);
       }
     }
     if (x_max == 0) {
@@ -167,9 +168,10 @@ bool write_glyph_str(uint8_t **matrix_buf, int num_components, int row_size,
  * NULL if nothing should be written out.
  * @returns True if everything was successful, false otherwise.
  */
-bool write_background_rows(infoto_img_writer *writer, void *data,
-                           const background_info background, const pixel color,
-                           infoto_glyph_str *glyph_str) {
+bool infoto_write_background_rows(infoto_img_writer *writer, void *data,
+                                  const background_info background,
+                                  const pixel color,
+                                  const infoto_glyph_str *glyph_str) {
   bool result = true;
   // create matrix of img data
   uint8_t **matrix_buf =
@@ -178,12 +180,12 @@ bool write_background_rows(infoto_img_writer *writer, void *data,
   for (int i = 0; i < background.pixels; ++i) {
     matrix_buf[i] = (uint8_t *)malloc(row_size * sizeof(uint8_t));
     for (int j = 0; j < row_size; j += writer->num_components) {
-      write_pixel_to_buffer(color, j, matrix_buf[i]);
+      infoto_write_pixel_to_buffer(color, j, matrix_buf[i]);
     }
   }
   if (glyph_str != NULL) {
-    result = write_glyph_str(matrix_buf, writer->num_components, row_size,
-                             background.pixels, glyph_str);
+    result = infoto_write_glyph_str(matrix_buf, writer->num_components,
+                                    row_size, background.pixels, glyph_str);
   }
   if (result && !writer->write_matrix(background, matrix_buf, data)) {
     result = false;

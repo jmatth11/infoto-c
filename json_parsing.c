@@ -97,7 +97,7 @@ static void parse_background_info(const char *str, int len, void *user_data) {
     fprintf(stderr, "json scanf error: parse_background_info\n");
     return;
   }
-  info.color = get_background_color_from_string(color_text);
+  info.color = infoto_get_background_color_from_string(color_text);
   out_cfg->background = info;
 }
 
@@ -116,7 +116,7 @@ bool config_from_json_file(const char *file_name, config *cfg) {
     return false;
   }
   // initialize config
-  init_config(cfg);
+  infoto_init_config(cfg);
   // scan json file
   // %M format is (callback, user_data)
   if (json_scanf(json_data, strlen(json_data), INFOTO_JSON_FORMAT,

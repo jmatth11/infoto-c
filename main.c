@@ -28,8 +28,8 @@ int main(int argc, const char *argv[]) {
     return 1;
   }
   info_text info;
-  info_text_init(&info, cfg.metadata.len, " | ");
-  if (!read_exif_data(&cfg, &info)) {
+  infoto_info_text_init(&info, cfg.metadata.len, " | ");
+  if (!infoto_read_exif_data(&cfg, &info)) {
     fprintf(stderr, "reading exif data failed.\n");
     return 1;
   }
@@ -48,9 +48,9 @@ int main(int argc, const char *argv[]) {
   if (!handler.write_image(&handler, cfg.img, cfg.background, &info)) {
     fprintf(stderr, "failed adding text to image.\n");
   }
-  info_text_free(&info);
+  infoto_info_text_free(&info);
   infoto_font_handler_free(&font_handler);
   infoto_jpeg_handler_free(&handler);
-  free_config(&cfg);
+  infoto_free_config(&cfg);
   return 0;
 }

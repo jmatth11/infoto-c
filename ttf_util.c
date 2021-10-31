@@ -194,9 +194,9 @@ void infoto_glyph_str_free(struct infoto_glyph_str *str) {
  * @param[in] text The text to generate glyphs from.
  * @returns True if successful, false otherwise.
  */
-bool create_glyph_str_from_text(struct infoto_font_handler *handler,
-                                struct infoto_glyph_str *glyph_str,
-                                const char *text) {
+bool infoto_create_glyph_str_from_text(struct infoto_font_handler *handler,
+                                       struct infoto_glyph_str *glyph_str,
+                                       const char *text) {
   if (text == NULL) {
     fprintf(stderr, "text was null.\n");
     return false;

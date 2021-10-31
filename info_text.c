@@ -10,7 +10,7 @@
  * @param[in] sep The separator for each value
  * @return 1 for success, 0 if malloc failed.
  */
-int info_text_init(info_text *info, size_t size, char *sep) {
+int infoto_info_text_init(info_text *info, size_t size, char *sep) {
   char **tmp = (char **)malloc(sizeof(char *) * size);
   if (tmp == NULL) {
     return 0;
@@ -27,7 +27,7 @@ int info_text_init(info_text *info, size_t size, char *sep) {
  * @param[in] info The info text object
  * @return The formatted string
  */
-char *info_text_to_string(const info_text *info) {
+char *infoto_info_text_to_string(const info_text *info) {
   char *buffer = NULL;
   size_t sep_len = strlen(info->separator);
   size_t length = 0;
@@ -35,6 +35,7 @@ char *info_text_to_string(const info_text *info) {
     length += strlen(info->buffer[i]);
     length += sep_len;
   }
+  // take off ending separator length, then add null character
   length = length - sep_len + 1;
   buffer = (char *)malloc(sizeof(char) * length);
   size_t str_pos = 0;
@@ -57,7 +58,7 @@ char *info_text_to_string(const info_text *info) {
  *
  * @param[in] info The info text object
  */
-void info_text_free(info_text *info) {
+void infoto_info_text_free(info_text *info) {
   for (int i = 0; i < info->size; ++i) {
     free(info->buffer[i]);
   }

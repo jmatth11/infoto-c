@@ -52,7 +52,7 @@ typedef struct {
  * @return background_color from the given string, BACKGROUND_WHITE if the
  * name cannot be resolved.
  */
-background_color get_background_color_from_string(const char *s);
+background_color infoto_get_background_color_from_string(const char *s);
 
 /**
  * Get a pixel structure that represents the given background color.
@@ -60,7 +60,7 @@ background_color get_background_color_from_string(const char *s);
  * @param[in] bgc The background color enum.
  * @return pixel structure that represents the background color enum.
  */
-pixel get_colored_pixel(const background_color bgc);
+pixel infoto_get_colored_pixel(const background_color bgc);
 
 /**
  * Write pixel info out to the given buffer.
@@ -70,7 +70,7 @@ pixel get_colored_pixel(const background_color bgc);
  * @param[in,out] buf Buffer to write to.
  * @return Number of bytes written out.
  */
-int write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf);
+int infoto_write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf);
 
 /**
  * Write out background border of given color to image writer.
@@ -83,8 +83,9 @@ int write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf);
  * NULL if nothing should be written out.
  * @returns True if everything was successful, false otherwise.
  */
-bool write_background_rows(infoto_img_writer *writer, void *image,
-                           const background_info background, const pixel color,
-                           infoto_glyph_str *glyph_str);
+bool infoto_write_background_rows(infoto_img_writer *writer, void *image,
+                                  const background_info background,
+                                  const pixel color,
+                                  const infoto_glyph_str *glyph_str);
 
 #endif

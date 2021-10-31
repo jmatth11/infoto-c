@@ -3,15 +3,15 @@
 #include <stdio.h>
 #include <string.h>
 
-void init_config(config *cfg) { init_metadata_array(&cfg->metadata, 1); }
+void infoto_init_config(config *cfg) { init_metadata_array(&cfg->metadata, 1); }
 
-void free_config(config *cfg) {
+void infoto_free_config(config *cfg) {
   free(cfg->img);
   free(cfg->font.ttf_file);
   free_metadata_array(&cfg->metadata);
 }
 
-void print_config(const config *cfg) {
+void infoto_print_config(const config *cfg) {
   if (cfg == NULL) {
     printf("config structure was NULL for print\n");
     return;

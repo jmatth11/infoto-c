@@ -12,7 +12,7 @@
  * @param[in] filename The filename to get extension for.
  * @return Pointer to filename extension.
  */
-const char *get_filename_ext(const char *filename) {
+const char *infoto_get_filename_ext(const char *filename) {
   const char *dot = strrchr(filename, '.');
   if (!dot || dot == filename)
     return "";
@@ -27,7 +27,7 @@ const char *get_filename_ext(const char *filename) {
  * @param[in] size The size to increase to
  * @return The number of bytes written (including null terminator, -1 if failed
  */
-int inc_string_size(char **str, size_t size) {
+int infoto_inc_string_size(char **str, size_t size) {
   const size_t char_size = sizeof(char);
   // extra + char_size for null terminator
   const size_t N = (char_size * size) + char_size;
@@ -50,15 +50,15 @@ int inc_string_size(char **str, size_t size) {
  * @param[in] filename The filename to derive new filename from.
  * @returns New filename to identify the edit file.
  */
-char *get_edit_file_name(const char *filename) {
-  const char *start_of_extension = get_filename_ext(filename);
+char *infoto_get_edit_file_name(const char *filename) {
+  const char *start_of_extension = infoto_get_filename_ext(filename);
   // calculate lengths of strings
   int extension_len = strlen(start_of_extension);
   int img_file_name_len = strlen(filename);
   int file_name_no_ext_len = (img_file_name_len - extension_len);
   int edited_file_name_len = img_file_name_len + EDITED_FILE_NAME_LEN;
   char *edited_file_name = NULL;
-  inc_string_size(&edited_file_name, edited_file_name_len);
+  infoto_inc_string_size(&edited_file_name, edited_file_name_len);
   strncpy(edited_file_name, filename, file_name_no_ext_len);
   memcpy(&edited_file_name[file_name_no_ext_len], EDITED_FILE_NAME,
          EDITED_FILE_NAME_LEN);

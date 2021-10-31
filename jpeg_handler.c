@@ -200,7 +200,7 @@ static void copy_read_data_to_write_buffer(const background_info background,
   while (decomp->cinfo.output_scanline < decomp->cinfo.output_height) {
     // writing side border
     for (int i = 0; i < border_side_width; i += num_comp) {
-      write_pixel_to_buffer(border_color, i, row_stride);
+      infoto_write_pixel_to_buffer(border_color, i, row_stride);
     }
     // read in data from decompressed jpeg file
     jpeg_read_scanlines(&decomp->cinfo, buffer, 1);
@@ -208,7 +208,7 @@ static void copy_read_data_to_write_buffer(const background_info background,
     // writing other side border
     for (int i = border_and_read_width;
          i < (border_and_read_width + border_side_width); i += num_comp) {
-      write_pixel_to_buffer(border_color, i, row_stride);
+      infoto_write_pixel_to_buffer(border_color, i, row_stride);
     }
     // write out to comressed jpeg file
     jpeg_write_scanlines(&comp->cinfo, row_array, 1);
@@ -275,6 +275,39 @@ static void init_jpeg_writer(struct comp_img *comp, infoto_img_writer *writer) {
 }
 
 /**
+ * Handle generating the new JPEG file from the given info.
+ *
+ * @param[in] background_writer The writer for the background color.
+ * @param[in,out] comp The compressed JPEG image.
+ * @param[in] decomp The decompressed JPEG image.
+ * @param[in] background The background info.
+ * @param[in] border_color The color to use for the border.
+ * @param[in] glyph_str The glyph string to write out.
+ * @returns True if successful, false otherwise.
+ */
+static bool handle_jpeg_copying(infoto_img_writer *background_writer,
+                                struct comp_img *comp,
+                                struct decomp_img *decomp,
+                                const background_info background,
+                                const pixel border_color,
+                                const infoto_glyph_str *glyph_str) {
+  // TODO figure out if this needs to be changed anymore
+  // don't write out glyph string on top border
+  if (!infoto_write_background_rows(background_writer, comp, background,
+                                    border_color, NULL)) {
+    return false;
+  }
+  // TODO refactor
+  copy_read_data_to_write_buffer(background, border_color, decomp, comp);
+  // write out glyph string on bottom border
+  if (!infoto_write_background_rows(background_writer, comp, background,
+                                    border_color, glyph_str)) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Write out border and text info to a given JPEG image.
  * This function does not overwrite the original image but makes a new edited
  * image file.
@@ -288,7 +321,6 @@ static bool write_jpeg_image(infoto_img_handler *handler, const char *filename,
                              const background_info background,
                              const info_text *info) {
 
-  // TODO use the jpeg handler
   struct infoto_jpeg_handler *jpeg_handler =
       (struct infoto_jpeg_handler *)handler->_internal;
   // create reader for img
@@ -298,31 +330,28 @@ static bool write_jpeg_image(infoto_img_handler *handler, const char *filename,
   struct comp_img comp;
   memset(&comp, 0, sizeof(comp));
   // create edit file name
-  char *edit_file_name = get_edit_file_name(filename);
+  char *edit_file_name = infoto_get_edit_file_name(filename);
   // set up error handling for decomp and comp structs
   if (setjmp(decomp.err.jmp_to_err_handler) ||
       setjmp(comp.err.jmp_to_err_handler)) {
     clean_up(&comp, &decomp, edit_file_name);
     return false;
   }
-
+  bool success = true;
   if (!init_jpeg_objects(filename, background.pixels, edit_file_name, &decomp,
                          &comp)) {
     clean_up(&comp, &decomp, edit_file_name);
     return false;
   }
-  pixel border_color = get_colored_pixel(background.color);
-  border_color.use_alpha = 0;
-  if (comp.cinfo.input_components > 3)
-    border_color.use_alpha = 1;
+  pixel border_color = infoto_get_colored_pixel(background.color);
+  border_color.use_alpha = comp.cinfo.input_components == 4 ? true : false;
 
-  // TODO break out into functions to cleanly handle cleaning up objects better
   // generate glyph string from info text
   infoto_glyph_str *glyph_str;
   infoto_glyph_str_init(&glyph_str);
-  char *info_str = info_text_to_string(info);
-  bool success = create_glyph_str_from_text(jpeg_handler->font_handler,
-                                            glyph_str, info_str);
+  char *info_str = infoto_info_text_to_string(info);
+  success = infoto_create_glyph_str_from_text(jpeg_handler->font_handler,
+                                              glyph_str, info_str);
   // free the info_str
   free(info_str);
   if (!success) {
@@ -334,27 +363,15 @@ static bool write_jpeg_image(infoto_img_handler *handler, const char *filename,
   infoto_img_writer background_writer;
   init_jpeg_writer(&comp, &background_writer);
 
-  // TODO handle return values of these calls
-
-  // TODO figure out if this needs to be changed anymore
-  // don't write out glyph string on top border
-  write_background_rows(&background_writer, &comp, background, border_color,
-                        NULL);
-
-  // TODO refactor
-  copy_read_data_to_write_buffer(background, border_color, &decomp, &comp);
-
-  // write out glyph string on bottom border
-  write_background_rows(&background_writer, &comp, background, border_color,
-                        glyph_str);
-
+  success = handle_jpeg_copying(&background_writer, &comp, &decomp, background,
+                                border_color, glyph_str);
   // free the glyph string
   infoto_glyph_str_free(glyph_str);
   glyph_str = NULL;
   // save new image
   // clean up writer, reader, and edit file name
   clean_up(&comp, &decomp, edit_file_name);
-  return true;
+  return success;
 }
 
 /**

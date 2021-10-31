@@ -82,20 +82,20 @@ typedef struct {
  *
  * @param cfg A config struct
  */
-void init_config(config *cfg);
+void infoto_init_config(config *cfg);
 
 /**
  * Free configuration struct.
  *
  * @param cfg A config struct
  */
-void free_config(config *cfg);
+void infoto_free_config(config *cfg);
 
 /**
  * Print the config structure.
  *
  * @param cfg The config structure
  */
-void print_config(const config *cfg);
+void infoto_print_config(const config *cfg);
 
 #endif
