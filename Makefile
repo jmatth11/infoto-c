@@ -1,6 +1,5 @@
-
 CC=gcc
-CFLAGS=-g -Wall -Werror
+CFLAGS=-g -Wall -Werror -fPIC
 INCLUDES=-I/usr/include/freetype2 -I/usr/include/libpng16
 LIBS=-lexif -ljpeg -lfreetype
 DEPS=deps/frozen/frozen.o
@@ -10,6 +9,11 @@ BIN=bin
 SOURCES=$(wildcard *.c)
 # path sub to point to obj folder
 OBJECTS=$(patsubst %.c, $(OBJ)/%.o, $(SOURCES))
+FILTER_FILES=$(OBJ)/main.o $(OBJ)/json_parsing.o
+ARCHIVE_FILES=$(filter-out $(FILTER_FILES), $(OBJECTS))
+ARCHIVE_DIR=lib
+ARCHIVE_NAME=libinfoto.a
+SHARED_NAME=libinfoto.so
 TARGET=infoto
 
 # have to path sub the dependencies. maybe a better way?
@@ -24,6 +28,12 @@ deps/%.o: deps/%.c
 # rule for top level source files
 $(OBJ)/%.o: %.c
 	gcc -c -o $@ $< $(CFLAGS) $(INCLUDES)
+
+# rule to create shared object and archive files
+archive: $(ARCHIVE_FILES) $(DEPS)
+	mkdir -p $(ARCHIVE_DIR)
+	gcc -shared -fPIC -o $(ARCHIVE_DIR)/$(SHARED_NAME) $(patsubst %.o, $(OBJ)/%.o, $(notdir $^)) $(LIBS)
+	ar -r $(ARCHIVE_DIR)/$(ARCHIVE_NAME) $(patsubst %.o, $(OBJ)/%.o, $(notdir $^))
 
 clean:
 	rm $(BIN)/$(TARGET) $(OBJ)/*.o
