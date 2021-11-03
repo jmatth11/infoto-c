@@ -133,14 +133,17 @@ int infoto_glyph_str_get_width(const struct infoto_glyph_str *str) {
  */
 int infoto_glyph_str_get_height(const struct infoto_glyph_str *str) {
   int height = 0;
-  if (str->glyphs.len > 0) {
+  for (int i = 0; i < str->glyphs.len; ++i) {
     FT_Glyph out;
-    get_infoto_bitmap_glyphs_array(&str->glyphs, 0, &out);
+    get_infoto_bitmap_glyphs_array(&str->glyphs, i, &out);
     if (out == NULL) {
       return -1;
     }
     FT_BitmapGlyph tmp = (FT_BitmapGlyph)out;
-    height = tmp->bitmap.rows;
+    size_t glyph_height = tmp->bitmap.rows;
+    if (glyph_height > height) {
+      height = glyph_height;
+    }
   }
   return height;
 }

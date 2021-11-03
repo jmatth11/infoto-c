@@ -117,6 +117,7 @@ infoto_error_enum infoto_write_glyph_str(uint8_t **matrix_buf,
                                          int height,
                                          const infoto_glyph_str *glyph_str) {
   if (glyph_str == NULL) {
+    fprintf(stderr, "glyph_str was null.\n");
     return INFOTO_ERR_NULL;
   }
   infoto_error_enum err_code = INFOTO_SUCCESS;
@@ -142,7 +143,14 @@ infoto_error_enum infoto_write_glyph_str(uint8_t **matrix_buf,
     }
     FT_Int x_max = bitmap_glyph->bitmap.width;
     FT_Int y_max = bitmap_glyph->bitmap.rows;
-    for (int i = glyph_top_pos, q = 0; q < y_max; ++i, ++q) {
+    // get height difference to see if we need to offset where the glyph is
+    // drawn
+    FT_Int height_difference = (glyph_height - y_max) - KERN_SIZE;
+    FT_Int adjusted_height = glyph_top_pos;
+    if (height_difference > 0) {
+      adjusted_height += height_difference;
+    }
+    for (int i = adjusted_height, q = 0; q < y_max; ++i, ++q) {
       for (int j = glyph_left_pos, p = 0; p < x_max; j += num_components, ++p) {
         if (i < 0 || j < 0 || i >= height || j >= row_size) {
           continue;
