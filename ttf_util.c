@@ -28,9 +28,10 @@ struct infoto_glyph_str {
  * Initialize font handler structure for TTF fonts.
  *
  * @param[out] handler The infoto_font_handler to initialize.
- * @returns True if successful, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool infoto_font_handler_init(struct infoto_font_handler **handler) {
+infoto_error_enum
+infoto_font_handler_init(struct infoto_font_handler **handler) {
   struct infoto_font_handler *local =
       (struct infoto_font_handler *)malloc(sizeof(struct infoto_font_handler));
 
@@ -38,10 +39,10 @@ bool infoto_font_handler_init(struct infoto_font_handler **handler) {
   if (error) {
     free(local);
     fprintf(stderr, "failed to initialize free type library.\n");
-    return false;
+    return INFOTO_ERR_TTF_INIT;
   }
   *handler = local;
-  return true;
+  return INFOTO_SUCCESS;
 }
 
 /**
@@ -50,28 +51,29 @@ bool infoto_font_handler_init(struct infoto_font_handler **handler) {
  * @param[out] handler The infoto_font_handler to load the TTF file into.
  * @param[in] ttf_file The TTF file to load.
  * @param[in] size The font size.
- * @returns True if successful, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool infoto_font_handler_load_font(struct infoto_font_handler *handler,
-                                   const char *ttf_file, int size) {
+infoto_error_enum
+infoto_font_handler_load_font(struct infoto_font_handler *handler,
+                              const char *ttf_file, int size) {
   // read ttf font. 0 grabs the first font (some ttf files have multiple fonts)
   FT_Error error = FT_New_Face(handler->library, ttf_file, 0, &handler->face);
   if (error == FT_Err_Unknown_File_Format) {
     fprintf(stderr, "Font file given could not be opened and read: \"%s\"\n",
             ttf_file);
-    return false;
+    return INFOTO_ERR_TTF_UNKNOWN_FILE;
   } else if (error) {
     fprintf(stderr, "font file failed to load with code: %s.\n",
             FT_Error_String(error));
-    return false;
+    return INFOTO_ERR_TTF_GENERIC;
   }
   // set width and height. 0 width means height param is used for both.
   error = FT_Set_Pixel_Sizes(handler->face, 0, size);
   if (error) {
     fprintf(stderr, "failed to set pixel size for font.\n");
-    return false;
+    return INFOTO_ERR_TTF_PIXEL_SIZE;
   }
-  return true;
+  return INFOTO_SUCCESS;
 }
 
 /**
@@ -90,24 +92,29 @@ void infoto_font_handler_free(struct infoto_font_handler **handler) {
  * Initialize an infoto_glyph_str structure.
  *
  * @param[out] str The infoto_glyph_str to initialize.
- * @returns True if successful, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool infoto_glyph_str_init(struct infoto_glyph_str **str) {
+infoto_error_enum infoto_glyph_str_init(struct infoto_glyph_str **str) {
   (*str) = (struct infoto_glyph_str *)malloc(sizeof(struct infoto_glyph_str));
-  return init_infoto_bitmap_glyphs_array(&(*str)->glyphs, 1);
+  return init_infoto_bitmap_glyphs_array(&(*str)->glyphs, 1)
+             ? INFOTO_SUCCESS
+             : INFOTO_ERR_GLYPH_STR_INIT;
 }
 
 /**
  * Get the width of the string of glyphs.
  *
  * @param[in] str The infoto_glyph_str to get the width of.
- * @returns The width of the string.
+ * @returns The width of the string, -1 if failure.
  */
 int infoto_glyph_str_get_width(const struct infoto_glyph_str *str) {
   int width = 0;
   for (int i = 0; i < str->glyphs.len; ++i) {
     FT_Glyph out;
     get_infoto_bitmap_glyphs_array(&str->glyphs, i, &out);
+    if (out == NULL) {
+      return -1;
+    }
     FT_BitmapGlyph tmp = (FT_BitmapGlyph)out;
     size_t glyph_width = tmp->bitmap.width;
     if (glyph_width == 0) {
@@ -122,13 +129,16 @@ int infoto_glyph_str_get_width(const struct infoto_glyph_str *str) {
  * Get the height of the string of glyphs.
  *
  * @param[in] str The infoto_glyph_str to get the height of.
- * @returns The height of the string.
+ * @returns The height of the string, -1 if failure.
  */
 int infoto_glyph_str_get_height(const struct infoto_glyph_str *str) {
   int height = 0;
   if (str->glyphs.len > 0) {
     FT_Glyph out;
     get_infoto_bitmap_glyphs_array(&str->glyphs, 0, &out);
+    if (out == NULL) {
+      return -1;
+    }
     FT_BitmapGlyph tmp = (FT_BitmapGlyph)out;
     height = tmp->bitmap.rows;
   }
@@ -165,10 +175,13 @@ FT_Glyph infoto_glyph_str_get_glyph(const struct infoto_glyph_str *str,
  *
  * @param[out] str The infoto_glyph_str to update.
  * @param[in] glyph The glyph to add.
- * @returns True if successful, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool infoto_glyph_str_add(struct infoto_glyph_str *str, FT_Glyph glyph) {
-  return insert_infoto_bitmap_glyphs_array(&str->glyphs, glyph);
+infoto_error_enum infoto_glyph_str_add(struct infoto_glyph_str *str,
+                                       FT_Glyph glyph) {
+  return insert_infoto_bitmap_glyphs_array(&str->glyphs, glyph)
+             ? INFOTO_SUCCESS
+             : INFOTO_ERR_GLYPH_STR_ADD;
 }
 
 /**
@@ -192,14 +205,15 @@ void infoto_glyph_str_free(struct infoto_glyph_str *str) {
  * @param[in] handler The infoto font handler for TTF font info.
  * @param[out] glyph_str The infoto_glyph_str to populate.
  * @param[in] text The text to generate glyphs from.
- * @returns True if successful, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool infoto_create_glyph_str_from_text(struct infoto_font_handler *handler,
-                                       struct infoto_glyph_str *glyph_str,
-                                       const char *text) {
+infoto_error_enum
+infoto_create_glyph_str_from_text(struct infoto_font_handler *handler,
+                                  struct infoto_glyph_str *glyph_str,
+                                  const char *text) {
   if (text == NULL) {
     fprintf(stderr, "text was null.\n");
-    return false;
+    return INFOTO_ERR_NULL;
   }
   int text_len = strlen(text);
   int error = 0;
@@ -208,7 +222,7 @@ bool infoto_create_glyph_str_from_text(struct infoto_font_handler *handler,
     error = FT_Load_Char(handler->face, text[i], FT_LOAD_RENDER);
     if (error) {
       fprintf(stderr, "error code %d for loading char: %c\n", error, text[i]);
-      return false;
+      return INFOTO_ERR_TTF_LOAD_CHAR;
     }
     FT_Glyph tmp = NULL;
     error = FT_Get_Glyph(slot, &tmp);
@@ -217,8 +231,8 @@ bool infoto_create_glyph_str_from_text(struct infoto_font_handler *handler,
     } else {
       fprintf(stderr, "could not get glyph from FT_GlyphSlot. error code = %d",
               error);
-      return false;
+      return INFOTO_ERR_TTF_GET_GLYPH;
     }
   }
-  return true;
+  return INFOTO_SUCCESS;
 }

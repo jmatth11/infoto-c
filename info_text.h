@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+#include "error_codes.h"
+
 typedef struct {
   char **buffer;
   size_t size;
@@ -12,12 +14,13 @@ typedef struct {
 /**
  * Initialize Info Text object.
  *
- * @param[in,out] info Info text object to initialize
+ * @param[in] info Info text object to initialize
  * @param[in] size The size to initialize to
  * @param[in] sep The separator for each value
- * @return 1 for success, 0 if malloc failed.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-int infoto_info_text_init(info_text *info, size_t size, char *sep);
+infoto_error_enum infoto_info_text_init(info_text *info, size_t size,
+                                        char *sep);
 
 /**
  * Get the formatted string for the info text object.

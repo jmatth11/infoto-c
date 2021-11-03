@@ -48,7 +48,7 @@ int infoto_inc_string_size(char **str, size_t size) {
  * Get a unique edit file name for the given filename.
  *
  * @param[in] filename The filename to derive new filename from.
- * @returns New filename to identify the edit file.
+ * @returns New filename to identify the edit file, NULL if failed.
  */
 char *infoto_get_edit_file_name(const char *filename) {
   const char *start_of_extension = infoto_get_filename_ext(filename);
@@ -58,7 +58,9 @@ char *infoto_get_edit_file_name(const char *filename) {
   int file_name_no_ext_len = (img_file_name_len - extension_len);
   int edited_file_name_len = img_file_name_len + EDITED_FILE_NAME_LEN;
   char *edited_file_name = NULL;
-  infoto_inc_string_size(&edited_file_name, edited_file_name_len);
+  if (infoto_inc_string_size(&edited_file_name, edited_file_name_len) == -1) {
+    return NULL;
+  }
   strncpy(edited_file_name, filename, file_name_no_ext_len);
   memcpy(&edited_file_name[file_name_no_ext_len], EDITED_FILE_NAME,
          EDITED_FILE_NAME_LEN);

@@ -9,11 +9,13 @@ BIN=bin
 SOURCES=$(wildcard *.c)
 # path sub to point to obj folder
 OBJECTS=$(patsubst %.c, $(OBJ)/%.o, $(SOURCES))
+# files to filter out for shared/archive files
 FILTER_FILES=$(OBJ)/main.o $(OBJ)/json_parsing.o
 ARCHIVE_FILES=$(filter-out $(FILTER_FILES), $(OBJECTS))
 ARCHIVE_DIR=lib
 ARCHIVE_NAME=libinfoto.a
 SHARED_NAME=libinfoto.so
+# executable, if used for cli
 TARGET=infoto
 
 # have to path sub the dependencies. maybe a better way?

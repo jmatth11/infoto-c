@@ -1,11 +1,11 @@
 #ifndef INFOTO_IMG_UTILS
 #define INFOTO_IMG_UTILS
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #include "config.h"
+#include "error_codes.h"
 #include "info_text.h"
 #include "ttf_util.h"
 
@@ -15,8 +15,8 @@
  */
 struct infoto_img_handler {
   void *_internal;
-  bool (*write_image)(struct infoto_img_handler *, const char *,
-                      const background_info, const info_text *);
+  infoto_error_enum (*write_image)(struct infoto_img_handler *, const char *,
+                                   const background_info, const info_text *);
 };
 typedef struct infoto_img_handler infoto_img_handler;
 
@@ -34,7 +34,8 @@ typedef struct {
 /**
  * Function pointer type for writing a matrix to an image.
  */
-typedef bool (*write_matrix_fn)(const background_info, uint8_t **, void *);
+typedef infoto_error_enum (*write_matrix_fn)(const background_info, uint8_t **,
+                                             void *);
 
 /**
  * Generic writer object for an image.
@@ -63,6 +64,14 @@ background_color infoto_get_background_color_from_string(const char *s);
 pixel infoto_get_colored_pixel(const background_color bgc);
 
 /**
+ * Get pixel with one value.
+ *
+ * @param[in] v The value to apply to rgb values.
+ * @returns The pixel structure.
+ */
+pixel infoto_pixel_from_single_value(const uint8_t v);
+
+/**
  * Write pixel info out to the given buffer.
  *
  * @param[in] p pixel structure to write out.
@@ -81,11 +90,10 @@ int infoto_write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf);
  * @param[in] color The pixel color for the background border.
  * @param[in] glyph_str The glyph string to write out to the background. Pass
  * NULL if nothing should be written out.
- * @returns True if everything was successful, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool infoto_write_background_rows(infoto_img_writer *writer, void *image,
-                                  const background_info background,
-                                  const pixel color,
-                                  const infoto_glyph_str *glyph_str);
+infoto_error_enum infoto_write_background_rows(
+    infoto_img_writer *writer, void *image, const background_info background,
+    const pixel color, const infoto_glyph_str *glyph_str);
 
 #endif

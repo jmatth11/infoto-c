@@ -110,15 +110,16 @@ int infoto_write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf) {
  * @param[in] row_size The row size of the matrix buffer.
  * @param[in] height The height size of the matrix buffer.
  * @param[in] glyph_str The glyph string to write out.
- * @returns True if successful, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool infoto_write_glyph_str(uint8_t **matrix_buf, int num_components,
-                            int row_size, int height,
-                            const infoto_glyph_str *glyph_str) {
+infoto_error_enum infoto_write_glyph_str(uint8_t **matrix_buf,
+                                         int num_components, int row_size,
+                                         int height,
+                                         const infoto_glyph_str *glyph_str) {
   if (glyph_str == NULL) {
-    return true;
+    return INFOTO_ERR_NULL;
   }
-  bool result = true;
+  infoto_error_enum err_code = INFOTO_SUCCESS;
   int glyph_width = infoto_glyph_str_get_width(glyph_str) * num_components;
   int glyph_height = infoto_glyph_str_get_height(glyph_str);
   int glyph_left_pos = (row_size / 2) - (glyph_width / 2);
@@ -133,8 +134,11 @@ bool infoto_write_glyph_str(uint8_t **matrix_buf, int num_components,
       break;
     default:
       fprintf(stderr, "cannot handle other formats from bitmap\n");
-      result = false;
-      continue;
+      err_code = INFOTO_ERR_TTF_WRONG_FORMAT;
+      break;
+    }
+    if (err_code != INFOTO_SUCCESS) {
+      break;
     }
     FT_Int x_max = bitmap_glyph->bitmap.width;
     FT_Int y_max = bitmap_glyph->bitmap.rows;
@@ -144,8 +148,8 @@ bool infoto_write_glyph_str(uint8_t **matrix_buf, int num_components,
           continue;
         }
         pixel color = infoto_pixel_from_single_value(
-            255 ^ bitmap_glyph->bitmap.buffer[q * x_max + p]);
-        color.use_alpha = num_components == 4 ? true : false;
+            ~bitmap_glyph->bitmap.buffer[q * x_max + p]);
+        color.use_alpha = num_components == 4 ? 1 : 0;
         infoto_write_pixel_to_buffer(color, j, matrix_buf[i]);
       }
     }
@@ -154,7 +158,7 @@ bool infoto_write_glyph_str(uint8_t **matrix_buf, int num_components,
     }
     glyph_left_pos += ((x_max + KERN_SIZE) * num_components);
   }
-  return result;
+  return err_code;
 }
 
 /**
@@ -166,16 +170,18 @@ bool infoto_write_glyph_str(uint8_t **matrix_buf, int num_components,
  * @param[in] color The pixel color for the background border.
  * @param[in] glyph_str The glyph string to write out to the background. Pass
  * NULL if nothing should be written out.
- * @returns True if everything was successful, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool infoto_write_background_rows(infoto_img_writer *writer, void *data,
-                                  const background_info background,
-                                  const pixel color,
-                                  const infoto_glyph_str *glyph_str) {
-  bool result = true;
+infoto_error_enum infoto_write_background_rows(
+    infoto_img_writer *writer, void *data, const background_info background,
+    const pixel color, const infoto_glyph_str *glyph_str) {
+  infoto_error_enum err_code = INFOTO_SUCCESS;
   // create matrix of img data
   uint8_t **matrix_buf =
       (uint8_t **)malloc(background.pixels * sizeof(uint8_t *));
+  if (matrix_buf == NULL) {
+    return INFOTO_ERR_MALLOC;
+  }
   int row_size = writer->image_width * writer->num_components;
   for (int i = 0; i < background.pixels; ++i) {
     matrix_buf[i] = (uint8_t *)malloc(row_size * sizeof(uint8_t));
@@ -184,16 +190,16 @@ bool infoto_write_background_rows(infoto_img_writer *writer, void *data,
     }
   }
   if (glyph_str != NULL) {
-    result = infoto_write_glyph_str(matrix_buf, writer->num_components,
-                                    row_size, background.pixels, glyph_str);
+    err_code = infoto_write_glyph_str(matrix_buf, writer->num_components,
+                                      row_size, background.pixels, glyph_str);
   }
-  if (result && !writer->write_matrix(background, matrix_buf, data)) {
-    result = false;
+  if (err_code == INFOTO_SUCCESS) {
+    err_code = writer->write_matrix(background, matrix_buf, data);
   }
   // free arrays
   for (int i = 0; i < background.pixels; ++i) {
     free(matrix_buf[i]);
   }
   free(matrix_buf);
-  return result;
+  return err_code;
 }

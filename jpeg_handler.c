@@ -1,7 +1,7 @@
-#include <stdbool.h>
 #include <stdio.h>
 
 #include "config.h"
+#include "error_codes.h"
 #include "info_text.h"
 #include "jpeg_handler.h"
 #include "str_utils.h"
@@ -67,13 +67,14 @@ struct comp_img {
  *
  * @param[in] file_name The filename the decompressed image should open.
  * @param[out] decomp The decompressed image to initialize.
- * @returns True on success, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-static bool init_decomp_img(const char *file_name, struct decomp_img *decomp) {
+static infoto_error_enum init_decomp_img(const char *file_name,
+                                         struct decomp_img *decomp) {
   // open file
   if ((decomp->file = fopen(file_name, "rb")) == NULL) {
     fprintf(stderr, "can't open %s\n", file_name);
-    return false;
+    return INFOTO_ERR_OPEN_FILE;
   }
   // set up error handler
   decomp->cinfo.err = jpeg_std_error(&decomp->err.pub);
@@ -83,8 +84,8 @@ static bool init_decomp_img(const char *file_name, struct decomp_img *decomp) {
   // set up the std in source (our file)
   jpeg_stdio_src(&decomp->cinfo, decomp->file);
   // read in and populate the header files
-  jpeg_read_header(&decomp->cinfo, true);
-  return true;
+  jpeg_read_header(&decomp->cinfo, 1);
+  return INFOTO_SUCCESS;
 }
 
 /**
@@ -92,9 +93,10 @@ static bool init_decomp_img(const char *file_name, struct decomp_img *decomp) {
  *
  * @param[in] file_name The filename the compressed image should open.
  * @param[out] comp The compressed image to initialize.
- * @returns True on success, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-static bool init_comp_img(const char *file_name, struct comp_img *comp) {
+static infoto_error_enum init_comp_img(const char *file_name,
+                                       struct comp_img *comp) {
   // set up the error handler
   comp->cinfo.err = jpeg_std_error(&comp->err.pub);
   // create the compress object
@@ -102,11 +104,11 @@ static bool init_comp_img(const char *file_name, struct comp_img *comp) {
   // open the file to write to
   if ((comp->file = fopen(file_name, "wb")) == NULL) {
     fprintf(stderr, "can't open file: %s\n", file_name);
-    return false;
+    return INFOTO_ERR_OPEN_FILE;
   }
   // set our std out destination (the file)
   jpeg_stdio_dest(&comp->cinfo, comp->file);
-  return true;
+  return INFOTO_SUCCESS;
 }
 
 static void close_jpeg_img(j_common_ptr info) {
@@ -167,7 +169,7 @@ static void sync_settings(const int added_pixels,
   // set the rest of the defaults
   jpeg_set_defaults(&comp->cinfo);
   // keep original quality
-  jpeg_set_quality(&comp->cinfo, 100, true);
+  jpeg_set_quality(&comp->cinfo, 100, 1);
 }
 
 // TODO rework this to be generic using infoto_img_file objects
@@ -224,27 +226,29 @@ static void copy_read_data_to_write_buffer(const background_info background,
  * @param[in] out_file Filename of file to write out to.
  * @param[out] decomp The decomp_img object to initialize.
  * @param[out] comp The comp_img object to initialize.
- * @returns True on success, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-static bool init_jpeg_objects(const char *filename, const int pixel_count,
-                              const char *out_file, struct decomp_img *decomp,
-                              struct comp_img *comp) {
+static infoto_error_enum init_jpeg_objects(const char *filename,
+                                           const int pixel_count,
+                                           const char *out_file,
+                                           struct decomp_img *decomp,
+                                           struct comp_img *comp) {
   // initialize decomp
-  if (!init_decomp_img(filename, decomp)) {
+  if (init_decomp_img(filename, decomp) != INFOTO_SUCCESS) {
     fprintf(stderr, "failed to read jpeg image\n");
-    return false;
+    return INFOTO_ERR_IMG_READ;
   }
   // initialize comp
-  if (!init_comp_img(out_file, comp)) {
+  if (init_comp_img(out_file, comp) != INFOTO_SUCCESS) {
     fprintf(stderr, "failed creating jpeg writer\n");
-    return false;
+    return INFOTO_ERR_IMG_WRITER;
   }
   // sync settings
   sync_settings(pixel_count, decomp, comp);
   // start compress and decompress objects
-  jpeg_start_compress(&comp->cinfo, true);
+  jpeg_start_compress(&comp->cinfo, 1);
   jpeg_start_decompress(&decomp->cinfo);
-  return true;
+  return INFOTO_SUCCESS;
 }
 
 /**
@@ -253,13 +257,13 @@ static bool init_jpeg_objects(const char *filename, const int pixel_count,
  * @param[in] background The background info.
  * @param[in] buf The buffer to write out.
  * @param[in,out] image The compression image object to write to.
- * @returns True for success, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-static bool write_jpeg_matrix(const background_info background, uint8_t **buf,
-                              void *image) {
+static infoto_error_enum write_jpeg_matrix(const background_info background,
+                                           uint8_t **buf, void *image) {
   struct comp_img *comp = (struct comp_img *)image;
   jpeg_write_scanlines(&comp->cinfo, buf, background.pixels);
-  return true;
+  return INFOTO_SUCCESS;
 }
 
 /**
@@ -283,28 +287,24 @@ static void init_jpeg_writer(struct comp_img *comp, infoto_img_writer *writer) {
  * @param[in] background The background info.
  * @param[in] border_color The color to use for the border.
  * @param[in] glyph_str The glyph string to write out.
- * @returns True if successful, false otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-static bool handle_jpeg_copying(infoto_img_writer *background_writer,
-                                struct comp_img *comp,
-                                struct decomp_img *decomp,
-                                const background_info background,
-                                const pixel border_color,
-                                const infoto_glyph_str *glyph_str) {
-  // TODO figure out if this needs to be changed anymore
+static infoto_error_enum
+handle_jpeg_copying(infoto_img_writer *background_writer, struct comp_img *comp,
+                    struct decomp_img *decomp, const background_info background,
+                    const pixel border_color,
+                    const infoto_glyph_str *glyph_str) {
   // don't write out glyph string on top border
-  if (!infoto_write_background_rows(background_writer, comp, background,
-                                    border_color, NULL)) {
-    return false;
+  infoto_error_enum err_code = INFOTO_SUCCESS;
+  err_code = infoto_write_background_rows(background_writer, comp, background,
+                                          border_color, NULL);
+  if (err_code != INFOTO_SUCCESS) {
+    return err_code;
   }
-  // TODO refactor
   copy_read_data_to_write_buffer(background, border_color, decomp, comp);
   // write out glyph string on bottom border
-  if (!infoto_write_background_rows(background_writer, comp, background,
-                                    border_color, glyph_str)) {
-    return false;
-  }
-  return true;
+  return infoto_write_background_rows(background_writer, comp, background,
+                                      border_color, glyph_str);
 }
 
 /**
@@ -315,11 +315,12 @@ static bool handle_jpeg_copying(infoto_img_writer *background_writer,
  * @param[in] filename The original filename.
  * @param[in] background The background info.
  * @param[in] info The info text object
- * @return True if successful, False otherwise
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-static bool write_jpeg_image(infoto_img_handler *handler, const char *filename,
-                             const background_info background,
-                             const info_text *info) {
+static infoto_error_enum write_jpeg_image(infoto_img_handler *handler,
+                                          const char *filename,
+                                          const background_info background,
+                                          const info_text *info) {
 
   struct infoto_jpeg_handler *jpeg_handler =
       (struct infoto_jpeg_handler *)handler->_internal;
@@ -335,43 +336,42 @@ static bool write_jpeg_image(infoto_img_handler *handler, const char *filename,
   if (setjmp(decomp.err.jmp_to_err_handler) ||
       setjmp(comp.err.jmp_to_err_handler)) {
     clean_up(&comp, &decomp, edit_file_name);
-    return false;
+    return INFOTO_ERR_JPEG_HANDLER;
   }
-  bool success = true;
-  if (!init_jpeg_objects(filename, background.pixels, edit_file_name, &decomp,
-                         &comp)) {
+  infoto_error_enum err_code = init_jpeg_objects(
+      filename, background.pixels, edit_file_name, &decomp, &comp);
+  if (err_code != INFOTO_SUCCESS) {
     clean_up(&comp, &decomp, edit_file_name);
-    return false;
+    return err_code;
   }
   pixel border_color = infoto_get_colored_pixel(background.color);
-  border_color.use_alpha = comp.cinfo.input_components == 4 ? true : false;
+  border_color.use_alpha = comp.cinfo.input_components == 4 ? 1 : 0;
 
   // generate glyph string from info text
   infoto_glyph_str *glyph_str;
   infoto_glyph_str_init(&glyph_str);
   char *info_str = infoto_info_text_to_string(info);
-  success = infoto_create_glyph_str_from_text(jpeg_handler->font_handler,
-                                              glyph_str, info_str);
+  err_code = infoto_create_glyph_str_from_text(jpeg_handler->font_handler,
+                                               glyph_str, info_str);
   // free the info_str
   free(info_str);
-  if (!success) {
-    // TODO this doesn't handle freeing other initialized objects
+
+  if (err_code == INFOTO_SUCCESS) {
+    infoto_img_writer background_writer;
+    init_jpeg_writer(&comp, &background_writer);
+
+    err_code = handle_jpeg_copying(&background_writer, &comp, &decomp,
+                                   background, border_color, glyph_str);
+  } else {
     fprintf(stderr, "failed to create glyph string from text.\n");
-    return false;
   }
-
-  infoto_img_writer background_writer;
-  init_jpeg_writer(&comp, &background_writer);
-
-  success = handle_jpeg_copying(&background_writer, &comp, &decomp, background,
-                                border_color, glyph_str);
   // free the glyph string
   infoto_glyph_str_free(glyph_str);
   glyph_str = NULL;
   // save new image
   // clean up writer, reader, and edit file name
   clean_up(&comp, &decomp, edit_file_name);
-  return success;
+  return err_code;
 }
 
 /**

@@ -23,7 +23,8 @@
  * @param[in] order The ExifData byte order
  * @param[out] out The char array to populate
  */
-void get_entry_value_str(ExifEntry *entry, ExifByteOrder order, char *out) {
+static void get_entry_value_str(ExifEntry *entry, ExifByteOrder order,
+                                char *out) {
   switch (entry->format) {
   case EXIF_FORMAT_SHORT: {
     ExifShort tmp = exif_get_short(entry->data, order);
@@ -71,38 +72,38 @@ void get_entry_value_str(ExifEntry *entry, ExifByteOrder order, char *out) {
  *
  * @param[in] file_name The file to access
  * @param[out] exif The EXIF data object to populate
- * @return True if successful, False otherwise
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool get_exif_data(const char *file_name, ExifData **exif) {
+static infoto_error_enum get_exif_data(const char *file_name, ExifData **exif) {
   // check the access of the file
   if (access(file_name, F_OK) != 0) {
     fprintf(stderr, "file is not accessible: %s\n", file_name);
-    return false;
+    return INFOTO_ERR_NO_FILE_ACCESS;
   }
   // read out EXIF data
   *exif = exif_data_new_from_file(file_name);
   if (exif == NULL) {
     fprintf(stderr, "could not read exif data for file: %s\n", file_name);
-    return false;
+    return INFOTO_ERR_EXIF_READ;
   }
-  return true;
+  return INFOTO_SUCCESS;
 }
 
-char *get_info_text_buffer(const ExifEntry *entry, const char *value,
-                           const metadata_info mi) {
+static char *get_info_text_buffer(const ExifEntry *entry, const char *value,
+                                  const metadata_info mi) {
   const int buffer_size = (FORMATTED_STRING_LEN + entry->size);
   const size_t char_size = sizeof(char);
   char *buffer = (char *)malloc((char_size * buffer_size) + char_size);
   if (buffer == NULL) {
     fprintf(stderr, "malloc of buffer failed.\n");
-    return false;
+    return NULL;
   }
   // get formated string
   // buffer_N is number of characters in buffer, not including null character
   const int buffer_N = sprintf(buffer, "%s%s%s", mi.prefix, value, mi.postfix);
   if (buffer_N < 0) {
     fprintf(stderr, "sprintf failed\n");
-    return false;
+    return NULL;
   }
   // force uppercase
   for (int j = 0; j <= buffer_N; ++j) {
@@ -118,14 +119,14 @@ char *get_info_text_buffer(const ExifEntry *entry, const char *value,
  *
  * @param cfg The config structure
  * @param output An info text buffer object
- * @returns bool true for success, false otherwise
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool infoto_read_exif_data(config *cfg, info_text *output) {
+infoto_error_enum infoto_read_exif_data(config *cfg, info_text *output) {
   ExifData *exif = NULL;
-  if (!get_exif_data(cfg->img, &exif)) {
-    return false;
+  infoto_error_enum err_code = get_exif_data(cfg->img, &exif);
+  if (err_code != INFOTO_SUCCESS) {
+    return err_code;
   }
-  bool result = true;
   ExifByteOrder byte_order = exif_data_get_byte_order(exif);
   // have a reusable value buffer
   char *value = NULL;
@@ -146,7 +147,7 @@ bool infoto_read_exif_data(config *cfg, info_text *output) {
     ExifEntry *entry = exif_data_get_entry(exif, tag);
     if (entry == NULL) {
       fprintf(stderr, "failed to get %s entry\n", mi.name);
-      result = false;
+      err_code = INFOTO_ERR_EXIF_DATA;
       break;
     }
     // allocate more memory for our buffer if it's not big enough
@@ -155,7 +156,7 @@ bool infoto_read_exif_data(config *cfg, info_text *output) {
       value_len = infoto_inc_string_size(&value, entry->size);
       if (value_len == -1) {
         fprintf(stderr, "inc_string_size failed.\n");
-        result = false;
+        err_code = INFOTO_ERR_INC_STR_SIZE;
         break;
       }
     }
@@ -167,12 +168,12 @@ bool infoto_read_exif_data(config *cfg, info_text *output) {
     char *buffer = get_info_text_buffer(entry, value, mi);
     if (buffer == NULL) {
       fprintf(stderr, "info text buffer failed.\n");
-      result = false;
+      err_code = INFOTO_ERR_INFO_TEXT_BUFF;
       break;
     }
     output->buffer[i] = buffer;
   }
   // free value buffer
   free(value);
-  return result;
+  return err_code;
 }

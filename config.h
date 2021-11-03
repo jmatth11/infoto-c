@@ -1,7 +1,6 @@
 #ifndef INFOTO_CONFIG_H
 #define INFOTO_CONFIG_H
 
-#include <stdbool.h>
 #include <stdlib.h>
 
 #include "deps/array_template/array_template.h"

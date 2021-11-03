@@ -1,7 +1,9 @@
-#include "json_parsing.h"
-#include "deps/frozen/frozen.h"
-#include "img_utils.h"
 #include <string.h>
+
+#include "deps/frozen/frozen.h"
+
+#include "img_utils.h"
+#include "json_parsing.h"
 
 /* Main JSON file format */
 static const char *INFOTO_JSON_FORMAT = "{"
@@ -106,14 +108,14 @@ static void parse_background_info(const char *str, int len, void *user_data) {
  *
  * @param file_name The JSON file name path.
  * @param cfg The struct config to populate.
- * @return True if successful, False otherwise.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool config_from_json_file(const char *file_name, config *cfg) {
+infoto_error_enum config_from_json_file(const char *file_name, config *cfg) {
   // read in file
   char *json_data = json_fread(file_name);
   if (json_data == NULL) {
     fprintf(stderr, "error reading json file: %s\n", file_name);
-    return false;
+    return INFOTO_ERR_OPEN_FILE;
   }
   // initialize config
   infoto_init_config(cfg);
@@ -123,9 +125,9 @@ bool config_from_json_file(const char *file_name, config *cfg) {
                  &parse_metadata_list, cfg, &parse_font_info, cfg,
                  &parse_background_info, cfg, &cfg->img) <= 0) {
     fprintf(stderr, "json scanf error: config_from_json_file.\n");
-    return false;
+    return INFOTO_ERR_JSON_GENERIC;
   };
   // free buffer from file
   free(json_data);
-  return true;
+  return INFOTO_SUCCESS;
 }

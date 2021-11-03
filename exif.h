@@ -1,6 +1,5 @@
-#include <stdbool.h>
-
 #include "config.h"
+#include "error_codes.h"
 #include "info_text.h"
 
 /**
@@ -8,6 +7,6 @@
  *
  * @param cfg The config structure
  * @param output An info text buffer object
- * @returns bool true for success, false otherwise
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-bool infoto_read_exif_data(config *cfg, info_text *output);
+infoto_error_enum infoto_read_exif_data(config *cfg, info_text *output);
