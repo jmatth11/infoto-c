@@ -21,7 +21,7 @@ int main(int argc, const char *argv[]) {
   // generate info text for img
   info_text info;
   infoto_info_text_init(&info, cfg.metadata.len, " | ");
-  if (infoto_read_exif_data(&cfg, &info) != INFOTO_SUCCESS) {
+  if (infoto_read_exif_data(cfg.img, &cfg.metadata, &info) != INFOTO_SUCCESS) {
     fprintf(stderr, "reading exif data failed.\n");
     return 1;
   }

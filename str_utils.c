@@ -7,6 +7,18 @@
 #define EDITED_FILE_NAME_LEN strlen(EDITED_FILE_NAME)
 
 /**
+ * Convenience function to free all strings within the string array.
+ *
+ * @param[out] arr The array of strings.
+ */
+void infoto_string_array_free_strs(string_array *arr) {
+  for (int i = 0; i < arr->len; ++i) {
+    free(arr->string_data[i]);
+    arr->string_data[i] = NULL;
+  }
+}
+
+/**
  * Get filename extension starting pointer.
  *
  * @param[in] filename The filename to get extension for.

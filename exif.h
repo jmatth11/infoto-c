@@ -5,8 +5,11 @@
 /**
  * Read EXIF data from JPEG file.
  *
- * @param cfg The config structure
- * @param output An info text buffer object
+ * @param[in] image_name The image to read EXIF data from.
+ * @param[in] metadata The array of metadata info.
+ * @param[out] output An info text buffer object
  * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-infoto_error_enum infoto_read_exif_data(config *cfg, info_text *output);
+infoto_error_enum infoto_read_exif_data(const char *image_name,
+                                        const metadata_array *metadata,
+                                        info_text *output);

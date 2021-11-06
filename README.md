@@ -9,7 +9,7 @@ it more robust and to clean up the code base.
 
 TODOs
 - finish README
-- Create function that can process settings over an array of images.
+- fix write to return new edited image name
 - See if the code can be cleaned up more.
 - Create string structure to clean up string creation.
 - revisit ttf glyph writing to find the proper way to handle kerning and white space.

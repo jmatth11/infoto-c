@@ -3,6 +3,17 @@
 
 #include <stddef.h>
 
+#include "deps/array_template/array_template.h"
+
+generate_array_template(string, char *);
+
+/**
+ * Convenience function to free all strings within the string array.
+ *
+ * @param[out] arr The array of strings.
+ */
+void infoto_string_array_free_strs(string_array *arr);
+
 /**
  * Get filename extension starting pointer.
  *

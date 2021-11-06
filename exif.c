@@ -117,13 +117,16 @@ static char *get_info_text_buffer(const ExifEntry *entry, const char *value,
 /**
  * Read EXIF data from JPEG file.
  *
- * @param cfg The config structure
- * @param output An info text buffer object
+ * @param[in] image_name The image to read EXIF data from.
+ * @param[in] metadata The array of metadata info.
+ * @param[out] output An info text buffer object
  * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-infoto_error_enum infoto_read_exif_data(config *cfg, info_text *output) {
+infoto_error_enum infoto_read_exif_data(const char *image_name,
+                                        const metadata_array *metadata,
+                                        info_text *output) {
   ExifData *exif = NULL;
-  infoto_error_enum err_code = get_exif_data(cfg->img, &exif);
+  infoto_error_enum err_code = get_exif_data(image_name, &exif);
   if (err_code != INFOTO_SUCCESS) {
     return err_code;
   }
@@ -132,10 +135,10 @@ infoto_error_enum infoto_read_exif_data(config *cfg, info_text *output) {
   char *value = NULL;
   size_t value_len = 0;
   // initialize buffers
-  for (int i = 0; i < cfg->metadata.len; ++i) {
+  for (int i = 0; i < metadata->len; ++i) {
     // get metadata info object
     metadata_info mi;
-    get_metadata_array(&cfg->metadata, i, &mi);
+    get_metadata_array(metadata, i, &mi);
     // grab the tag name
     ExifTag tag = exif_tag_from_name(mi.name);
     if (tag == 0) {
