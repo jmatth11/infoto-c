@@ -32,20 +32,6 @@ typedef struct {
 generate_array_template(metadata, metadata_info);
 
 /**
- * structure defining font info.
- */
-typedef struct {
-  // font point size
-  int point;
-  // y offset from the bottom of the image
-  float y_offset_pct;
-  // color value
-  char color[CONFIG_COLOR_LEN];
-  // file name for TTF file
-  char *ttf_file;
-} font_info;
-
-/**
  * Enumeration of background colors.
  */
 typedef enum {
@@ -55,6 +41,18 @@ typedef enum {
   BACKGROUND_RED,
   BACKGROUND_WHITE
 } background_color;
+
+/**
+ * structure defining font info.
+ */
+typedef struct {
+  // font point size
+  int point;
+  // color value
+  background_color color;
+  // file name for TTF file
+  char *ttf_file;
+} font_info;
 
 /**
  * structure defining background info

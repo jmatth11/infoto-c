@@ -24,9 +24,8 @@ void infoto_print_config(const config *cfg) {
     return;
   }
   printf("\tttf_file: %s\n", cfg->font.ttf_file);
-  printf("\tcolor: %s\n", cfg->font.color);
+  printf("\tcolor: %d\n", cfg->font.color);
   printf("\tpoint: %d\n", cfg->font.point);
-  printf("\ty_offset_pct: %f\n", cfg->font.y_offset_pct);
   printf("}\n");
   printf("background: {\n");
   printf("\tcolor: %d\n", cfg->background.color);

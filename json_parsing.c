@@ -27,8 +27,7 @@ static const char *METADATA_JSON_FORMAT =
 static const char *FONT_JSON_FORMAT = "{"
                                       " point:%d,"
                                       " ttf_file:%Q,"
-                                      " color:%s,"
-                                      " y_offset_pct:%f"
+                                      " color:%s"
                                       "}";
 
 /* Background info JSON format */
@@ -79,11 +78,13 @@ static void parse_metadata_list(const char *str, int len, void *user_data) {
 static void parse_font_info(const char *str, int len, void *user_data) {
   config *out_cfg = (config *)user_data;
   font_info info;
+  char font_color[CONFIG_COLOR_LEN];
   if (json_scanf(str, len, FONT_JSON_FORMAT, &info.point, &info.ttf_file,
-                 &info.color, &info.y_offset_pct) < 0) {
+                 &font_color) < 0) {
     fprintf(stderr, "json scanf error: parse_font_info\n");
     return;
   }
+  info.color = infoto_get_background_color_from_string(font_color);
   out_cfg->font = info;
 }
 

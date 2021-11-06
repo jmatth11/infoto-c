@@ -35,9 +35,10 @@ background_color infoto_get_background_color_from_string(const char *s) {
  * @param[in] bgc The background color enum.
  * @return pixel structure that represents the background color enum.
  */
-pixel infoto_get_colored_pixel(const background_color bgc) {
+pixel infoto_get_colored_pixel(const background_color bgc, uint8_t use_alpha) {
   pixel p;
   p.alpha = 255;
+  p.use_alpha = use_alpha;
   switch (bgc) {
   case BACKGROUND_BLACK:
     p.r = 0;
@@ -114,7 +115,7 @@ int infoto_write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf) {
  */
 infoto_error_enum infoto_write_glyph_str(uint8_t **matrix_buf,
                                          int num_components, int row_size,
-                                         int height,
+                                         int height, const pixel font_color,
                                          const infoto_glyph_str *glyph_str) {
   if (glyph_str == NULL) {
     fprintf(stderr, "glyph_str was null.\n");
@@ -155,10 +156,10 @@ infoto_error_enum infoto_write_glyph_str(uint8_t **matrix_buf,
         if (i < 0 || j < 0 || i >= height || j >= row_size) {
           continue;
         }
-        pixel color = infoto_pixel_from_single_value(
-            ~bitmap_glyph->bitmap.buffer[q * x_max + p]);
-        color.use_alpha = num_components == 4 ? 1 : 0;
-        infoto_write_pixel_to_buffer(color, j, matrix_buf[i]);
+        uint8_t bit = bitmap_glyph->bitmap.buffer[q * x_max + p];
+        if (bit > 0) {
+          infoto_write_pixel_to_buffer(font_color, j, matrix_buf[i]);
+        }
       }
     }
     if (x_max == 0) {
@@ -175,15 +176,19 @@ infoto_error_enum infoto_write_glyph_str(uint8_t **matrix_buf,
  * @param[in] writer The writer.
  * @param[in,out] image The object that manages image data.
  * @param[in] background The background information.
- * @param[in] color The pixel color for the background border.
+ * @param[in] font The font information.
  * @param[in] glyph_str The glyph string to write out to the background. Pass
  * NULL if nothing should be written out.
  * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
 infoto_error_enum infoto_write_background_rows(
     infoto_img_writer *writer, void *data, const background_info background,
-    const pixel color, const infoto_glyph_str *glyph_str) {
+    const font_info font, const infoto_glyph_str *glyph_str) {
+
   infoto_error_enum err_code = INFOTO_SUCCESS;
+  const uint8_t use_alpha = writer->num_components == 4 ? 1 : 0;
+  const pixel background_color =
+      infoto_get_colored_pixel(background.color, use_alpha);
   // create matrix of img data
   uint8_t **matrix_buf =
       (uint8_t **)malloc(background.pixels * sizeof(uint8_t *));
@@ -194,12 +199,14 @@ infoto_error_enum infoto_write_background_rows(
   for (int i = 0; i < background.pixels; ++i) {
     matrix_buf[i] = (uint8_t *)malloc(row_size * sizeof(uint8_t));
     for (int j = 0; j < row_size; j += writer->num_components) {
-      infoto_write_pixel_to_buffer(color, j, matrix_buf[i]);
+      infoto_write_pixel_to_buffer(background_color, j, matrix_buf[i]);
     }
   }
   if (glyph_str != NULL) {
-    err_code = infoto_write_glyph_str(matrix_buf, writer->num_components,
-                                      row_size, background.pixels, glyph_str);
+    const pixel font_color = infoto_get_colored_pixel(font.color, use_alpha);
+    err_code =
+        infoto_write_glyph_str(matrix_buf, writer->num_components, row_size,
+                               background.pixels, font_color, glyph_str);
   }
   if (err_code == INFOTO_SUCCESS) {
     err_code = writer->write_matrix(background, matrix_buf, data);

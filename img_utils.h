@@ -16,7 +16,8 @@
 struct infoto_img_handler {
   void *_internal;
   infoto_error_enum (*write_image)(struct infoto_img_handler *, const char *,
-                                   const background_info, const info_text *);
+                                   const background_info, const font_info,
+                                   const info_text *);
 };
 typedef struct infoto_img_handler infoto_img_handler;
 
@@ -59,9 +60,10 @@ background_color infoto_get_background_color_from_string(const char *s);
  * Get a pixel structure that represents the given background color.
  *
  * @param[in] bgc The background color enum.
+ * @param[in] use_alpha Flag to use alpha channel.
  * @return pixel structure that represents the background color enum.
  */
-pixel infoto_get_colored_pixel(const background_color bgc);
+pixel infoto_get_colored_pixel(const background_color bgc, uint8_t use_alpha);
 
 /**
  * Get pixel with one value.
@@ -87,13 +89,13 @@ int infoto_write_pixel_to_buffer(const pixel p, const int i, uint8_t *buf);
  * @param[in] writer The writer.
  * @param[in,out] image The object that manages image data.
  * @param[in] background The background information.
- * @param[in] color The pixel color for the background border.
+ * @param[in] font The font information.
  * @param[in] glyph_str The glyph string to write out to the background. Pass
  * NULL if nothing should be written out.
  * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
 infoto_error_enum infoto_write_background_rows(
     infoto_img_writer *writer, void *image, const background_info background,
-    const pixel color, const infoto_glyph_str *glyph_str);
+    const font_info font, const infoto_glyph_str *glyph_str);
 
 #endif

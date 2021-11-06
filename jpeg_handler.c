@@ -111,6 +111,11 @@ static infoto_error_enum init_comp_img(const char *file_name,
   return INFOTO_SUCCESS;
 }
 
+/**
+ * Convenience function to close jpeg objects.
+ *
+ * @param[in,out] info The jpeg object to close.
+ */
 static void close_jpeg_img(j_common_ptr info) {
   // finish up objects
   if (info->is_decompressor) {
@@ -182,11 +187,13 @@ static void sync_settings(const int added_pixels,
  * @param[in,out] comp The compressed image to write to.
  */
 static void copy_read_data_to_write_buffer(const background_info background,
-                                           const pixel border_color,
                                            struct decomp_img *decomp,
                                            struct comp_img *comp) {
   int num_comp = comp->cinfo.input_components;
   int row_size = comp->cinfo.image_width * num_comp;
+  uint8_t use_alpha = num_comp == 4 ? 1 : 0;
+  const pixel background_color =
+      infoto_get_colored_pixel(background.color, use_alpha);
 
   JSAMPROW row_stride = (JSAMPLE *)malloc(row_size * sizeof(JSAMPLE));
   JSAMPARRAY row_array = &row_stride;
@@ -202,7 +209,7 @@ static void copy_read_data_to_write_buffer(const background_info background,
   while (decomp->cinfo.output_scanline < decomp->cinfo.output_height) {
     // writing side border
     for (int i = 0; i < border_side_width; i += num_comp) {
-      infoto_write_pixel_to_buffer(border_color, i, row_stride);
+      infoto_write_pixel_to_buffer(background_color, i, row_stride);
     }
     // read in data from decompressed jpeg file
     jpeg_read_scanlines(&decomp->cinfo, buffer, 1);
@@ -210,7 +217,7 @@ static void copy_read_data_to_write_buffer(const background_info background,
     // writing other side border
     for (int i = border_and_read_width;
          i < (border_and_read_width + border_side_width); i += num_comp) {
-      infoto_write_pixel_to_buffer(border_color, i, row_stride);
+      infoto_write_pixel_to_buffer(background_color, i, row_stride);
     }
     // write out to comressed jpeg file
     jpeg_write_scanlines(&comp->cinfo, row_array, 1);
@@ -292,19 +299,18 @@ static void init_jpeg_writer(struct comp_img *comp, infoto_img_writer *writer) {
 static infoto_error_enum
 handle_jpeg_copying(infoto_img_writer *background_writer, struct comp_img *comp,
                     struct decomp_img *decomp, const background_info background,
-                    const pixel border_color,
-                    const infoto_glyph_str *glyph_str) {
+                    const font_info font, const infoto_glyph_str *glyph_str) {
   // don't write out glyph string on top border
   infoto_error_enum err_code = INFOTO_SUCCESS;
   err_code = infoto_write_background_rows(background_writer, comp, background,
-                                          border_color, NULL);
+                                          font, NULL);
   if (err_code != INFOTO_SUCCESS) {
     return err_code;
   }
-  copy_read_data_to_write_buffer(background, border_color, decomp, comp);
+  copy_read_data_to_write_buffer(background, decomp, comp);
   // write out glyph string on bottom border
-  return infoto_write_background_rows(background_writer, comp, background,
-                                      border_color, glyph_str);
+  return infoto_write_background_rows(background_writer, comp, background, font,
+                                      glyph_str);
 }
 
 /**
@@ -320,6 +326,7 @@ handle_jpeg_copying(infoto_img_writer *background_writer, struct comp_img *comp,
 static infoto_error_enum write_jpeg_image(infoto_img_handler *handler,
                                           const char *filename,
                                           const background_info background,
+                                          const font_info font,
                                           const info_text *info) {
 
   struct infoto_jpeg_handler *jpeg_handler =
@@ -344,9 +351,6 @@ static infoto_error_enum write_jpeg_image(infoto_img_handler *handler,
     clean_up(&comp, &decomp, edit_file_name);
     return err_code;
   }
-  pixel border_color = infoto_get_colored_pixel(background.color);
-  border_color.use_alpha = comp.cinfo.input_components == 4 ? 1 : 0;
-
   // generate glyph string from info text
   infoto_glyph_str *glyph_str;
   infoto_glyph_str_init(&glyph_str);
@@ -361,7 +365,7 @@ static infoto_error_enum write_jpeg_image(infoto_img_handler *handler,
     init_jpeg_writer(&comp, &background_writer);
 
     err_code = handle_jpeg_copying(&background_writer, &comp, &decomp,
-                                   background, border_color, glyph_str);
+                                   background, font, glyph_str);
   } else {
     fprintf(stderr, "failed to create glyph string from text.\n");
   }
