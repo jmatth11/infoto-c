@@ -17,7 +17,7 @@ struct infoto_img_handler {
   void *_internal;
   infoto_error_enum (*write_image)(struct infoto_img_handler *, const char *,
                                    const background_info, const font_info,
-                                   const info_text *);
+                                   const info_text *, char **);
 };
 typedef struct infoto_img_handler infoto_img_handler;
 

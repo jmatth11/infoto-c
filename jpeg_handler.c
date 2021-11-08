@@ -318,16 +318,18 @@ handle_jpeg_copying(infoto_img_writer *background_writer, struct comp_img *comp,
  * This function does not overwrite the original image but makes a new edited
  * image file.
  *
+ * @param[in] handler The image handler interface object.
  * @param[in] filename The original filename.
  * @param[in] background The background info.
+ * @param[in] font The font info.
  * @param[in] info The info text object
+ * @param[out] edited_img The edited image's filename.
  * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-static infoto_error_enum write_jpeg_image(infoto_img_handler *handler,
-                                          const char *filename,
-                                          const background_info background,
-                                          const font_info font,
-                                          const info_text *info) {
+static infoto_error_enum
+write_jpeg_image(infoto_img_handler *handler, const char *filename,
+                 const background_info background, const font_info font,
+                 const info_text *info, char **edited_img) {
 
   struct infoto_jpeg_handler *jpeg_handler =
       (struct infoto_jpeg_handler *)handler->_internal;
@@ -372,9 +374,10 @@ static infoto_error_enum write_jpeg_image(infoto_img_handler *handler,
   // free the glyph string
   infoto_glyph_str_free(glyph_str);
   glyph_str = NULL;
+  *edited_img = edit_file_name;
   // save new image
   // clean up writer, reader, and edit file name
-  clean_up(&comp, &decomp, edit_file_name);
+  clean_up(&comp, &decomp, NULL);
   return err_code;
 }
 

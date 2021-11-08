@@ -40,11 +40,14 @@ int main(int argc, const char *argv[]) {
   infoto_img_handler handler;
   infoto_jpeg_handler_init(&handler, font_handler);
   int result = 0;
-  if (handler.write_image(&handler, cfg.img, cfg.background, cfg.font, &info) !=
-      INFOTO_SUCCESS) {
+  char *edited_img;
+  if (handler.write_image(&handler, cfg.img, cfg.background, cfg.font, &info,
+                          &edited_img) != INFOTO_SUCCESS) {
     fprintf(stderr, "failed adding text to image.\n");
     result = 1;
   }
+  printf("created edited image: %s\n", edited_img);
+  free(edited_img);
   // clean up
   infoto_info_text_free(&info);
   infoto_font_handler_free(&font_handler);

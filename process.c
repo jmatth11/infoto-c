@@ -9,14 +9,15 @@
  * @param[in] font The font info.
  * @param[in] metadata The array of metadata info.
  * @param[in] imgs The array of image filenames.
+ * @param[out] edited_imgs The array of edited image filenames.
  * @returns INFOTO_SUCCESS if successful, otherwise infoto_error_enum error.
  */
 infoto_error_enum infoto_process_bulk(struct infoto_img_handler *handler,
                                       const background_info background,
                                       const font_info font,
                                       const metadata_array *metadata,
-                                      const string_array *imgs) {
-  // TODO consider passing in an "out" string_array param
+                                      const string_array *imgs,
+                                      string_array *edited_imgs) {
   infoto_error_enum result = INFOTO_SUCCESS;
   for (int i = 0; i < imgs->len; ++i) {
     const char *image_name = imgs->string_data[i];
@@ -26,10 +27,13 @@ infoto_error_enum infoto_process_bulk(struct infoto_img_handler *handler,
     if (result != INFOTO_SUCCESS) {
       break;
     }
-    result = handler->write_image(handler, image_name, background, font, &info);
+    char *out;
+    result = handler->write_image(handler, image_name, background, font, &info,
+                                  &out);
     if (result != INFOTO_SUCCESS) {
       break;
     }
+    insert_string_array(edited_imgs, out);
     infoto_info_text_free(&info);
   }
   return result;
