@@ -18,6 +18,7 @@ SHARED_NAME=libinfoto.so
 # executable, if used for cli
 TARGET=infoto
 
+.PHONY: all
 # have to path sub the dependencies. maybe a better way?
 all: $(OBJECTS) $(DEPS)
 	$(CC) $(patsubst %.o, $(OBJ)/%.o, $(notdir $^)) $(CFLAGS) $(LIBS) -o $(BIN)/$(TARGET)
@@ -29,13 +30,17 @@ deps/%.o: deps/%.c
 
 # rule for top level source files
 $(OBJ)/%.o: %.c
+	@mkdir -p $(OBJ)
+	@mkdir -p $(BIN)
 	gcc -c -o $@ $< $(CFLAGS) $(INCLUDES)
 
+.PHONY: archive
 # rule to create shared object and archive files
 archive: $(ARCHIVE_FILES) $(DEPS)
 	mkdir -p $(ARCHIVE_DIR)
 	gcc -shared -fPIC -o $(ARCHIVE_DIR)/$(SHARED_NAME) $(patsubst %.o, $(OBJ)/%.o, $(notdir $^)) $(LIBS)
 	ar -r $(ARCHIVE_DIR)/$(ARCHIVE_NAME) $(patsubst %.o, $(OBJ)/%.o, $(notdir $^))
 
+.PHONY: clean
 clean:
 	rm $(BIN)/$(TARGET) $(OBJ)/*.o
