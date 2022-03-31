@@ -180,3 +180,9 @@ infoto_error_enum infoto_read_exif_data(const char *image_name,
   free(value);
   return err_code;
 }
+
+infoto_error_enum infoto_read_all_exif_data(const char *image_name) {
+  // TODO implement with "exif_content_foreach_entry" to grab all
+  // possible tags in image.
+  return INFOTO_SUCCESS;
+}

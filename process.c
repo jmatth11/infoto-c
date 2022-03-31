@@ -21,6 +21,8 @@ infoto_error_enum infoto_process_bulk(struct infoto_img_handler *handler,
   infoto_error_enum result = INFOTO_SUCCESS;
   for (int i = 0; i < imgs->len; ++i) {
     const char *image_name = imgs->string_data[i];
+    // TODO evaluate glyph size compared to background border size
+    // possibly return early with warning
     info_text info;
     infoto_info_text_init(&info, metadata->len, " | ");
     result = infoto_read_exif_data(image_name, metadata, &info);
