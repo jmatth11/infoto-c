@@ -205,7 +205,7 @@ void read_exif_data(ExifEntry *entry, void *user_data) {
  * @param[in,out] data_arr The EXIF data array to populate.
  * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-infoto_error_enum infoto_read_all_exif_data(const char *image_name,
+infoto_error_enum infoto_read_all_exif_tags(const char *image_name,
                                             infoto_exif_data_array *data_arr) {
   ExifData *exif = NULL;
   infoto_error_enum err_code = get_exif_data(image_name, &exif);
