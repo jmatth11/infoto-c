@@ -5,14 +5,14 @@
 #include "deps/array_template/array_template.h"
 #include "error_codes.h"
 #include "info_text.h"
-#include <libexif/exif-ifd.h>
+#include <libexif/exif-tag.h>
 
 /**
  * Simple EXIF data structure to hold EXIF tag info.
  */
 typedef struct infoto_exif_data {
   const char *name;
-  ExifIfd value;
+  ExifTag value;
 } infoto_exif_data;
 
 generate_array_template(infoto_exif_data, infoto_exif_data);

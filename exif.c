@@ -192,8 +192,9 @@ infoto_error_enum infoto_read_exif_data(const char *image_name,
 void read_exif_data(ExifEntry *entry, void *user_data) {
   infoto_exif_data_array *data_arr = (infoto_exif_data_array *)user_data;
   infoto_exif_data exif_data;
-  exif_data.value = exif_content_get_ifd(entry->parent);
-  exif_data.name = exif_tag_get_name(entry->tag);
+  exif_data.value = entry->tag;
+  exif_data.name =
+      exif_tag_get_name_in_ifd(entry->tag, exif_content_get_ifd(entry->parent));
   insert_infoto_exif_data_array(data_arr, exif_data);
 }
 
