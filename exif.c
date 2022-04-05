@@ -181,8 +181,39 @@ infoto_error_enum infoto_read_exif_data(const char *image_name,
   return err_code;
 }
 
-infoto_error_enum infoto_read_all_exif_data(const char *image_name) {
-  // TODO implement with "exif_content_foreach_entry" to grab all
-  // possible tags in image.
+/**
+ * Simple function to read EXIF data.
+ * Used with exif_content_foreach_entry callback function.
+ *
+ * @param[in] entry The ExifEntry object.
+ * @param[in, out] user_data The user data object passed in.
+ *   In this case an infoto_exif_data_array.
+ */
+void read_exif_data(ExifEntry *entry, void *user_data) {
+  infoto_exif_data_array *data_arr = (infoto_exif_data_array *)user_data;
+  infoto_exif_data exif_data;
+  exif_data.value = exif_content_get_ifd(entry->parent);
+  exif_data.name = exif_tag_get_name(entry->tag);
+  insert_infoto_exif_data_array(data_arr, exif_data);
+}
+
+/**
+ * Read all EXIF tag names the given image has.
+ *
+ * @param[in] image_name The image to read EXIF tags from.
+ * @param[in,out] data_arr The EXIF data array to populate.
+ * @returns INFOTO_SUCCESS if successful, otherwise an error code.
+ */
+infoto_error_enum infoto_read_all_exif_data(const char *image_name,
+                                            infoto_exif_data_array *data_arr) {
+  ExifData *exif = NULL;
+  infoto_error_enum err_code = get_exif_data(image_name, &exif);
+  if (err_code != INFOTO_SUCCESS) {
+    return err_code;
+  }
+  init_infoto_exif_data_array(data_arr, 1);
+  for (int i = EXIF_IFD_0; i < EXIF_IFD_COUNT; ++i) {
+    exif_content_foreach_entry(exif->ifd[i], read_exif_data, data_arr);
+  }
   return INFOTO_SUCCESS;
 }
