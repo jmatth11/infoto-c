@@ -10,12 +10,12 @@
 /**
  * Simple EXIF data structure to hold EXIF tag info.
  */
-typedef struct infoto_exif_data {
+typedef struct infoto_exif_tag_info {
   const char *name;
   ExifTag value;
-} infoto_exif_data;
+} infoto_exif_tag_info;
 
-generate_array_template(infoto_exif_data, infoto_exif_data);
+generate_array_template(infoto_exif_tag_info, infoto_exif_tag_info);
 
 /**
  * Read EXIF data from JPEG file.
@@ -33,10 +33,11 @@ infoto_error_enum infoto_read_exif_data(const char *image_name,
  * Read all EXIF tag names the given image has.
  *
  * @param[in] image_name The image to read EXIF tags from.
- * @param[in,out] data_arr The EXIF data array to populate.
+ * @param[in,out] info_arr The EXIF tag info array to populate.
  * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
-infoto_error_enum infoto_read_all_exif_tags(const char *image_name,
-                                            infoto_exif_data_array *data_arr);
+infoto_error_enum
+infoto_read_all_exif_tags(const char *image_name,
+                          infoto_exif_tag_info_array *info_arr);
 
 #endif
