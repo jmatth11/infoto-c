@@ -100,7 +100,7 @@ static char *get_info_text_buffer(const ExifEntry *entry, const char *value,
   }
   // get formated string
   // buffer_N is number of characters in buffer, not including null character
-  const int buffer_N = sprintf(buffer, "%s%s%s", mi.prefix, value, mi.postfix);
+  const int buffer_N = snprintf(buffer, buffer_size + 1, "%s%s%s", mi.prefix, value, mi.postfix);
   if (buffer_N < 0) {
     fprintf(stderr, "sprintf failed\n");
     return NULL;
