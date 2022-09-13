@@ -1,5 +1,6 @@
 CC=gcc
-CFLAGS=-g -Wall -Werror -fPIC
+CFLAGS=-Wall -Werror -fPIC
+PFLAGS=-DINFOTO_VERSION='"$(shell git rev-parse HEAD)"'
 INCLUDES=-I/usr/include/freetype2 -I/usr/include/libpng16
 LIBS=-lexif -ljpeg -lfreetype
 DEPS=deps/frozen/frozen.o
@@ -21,18 +22,22 @@ TARGET=infoto
 .PHONY: all
 # have to path sub the dependencies. maybe a better way?
 all: $(OBJECTS) $(DEPS)
-	$(CC) $(patsubst %.o, $(OBJ)/%.o, $(notdir $^)) $(CFLAGS) $(LIBS) -o $(BIN)/$(TARGET)
+	$(CC) $(patsubst %.o, $(OBJ)/%.o, $(notdir $^)) -O2 $(PFLAGS) $(CFLAGS) $(LIBS) -o $(BIN)/$(TARGET)
+
+.PHONY: debug
+debug: $(OBJECTS) $(DEPS)
+	$(CC) $(patsubst %.o, $(OBJ)/%.o, $(notdir $^)) -g $(PFLAGS) $(CFLAGS) $(LIBS) -o $(BIN)/$(TARGET)
 
 # rule for dependencies
 # put .o files in obj directory
 deps/%.o: deps/%.c
-	gcc -c -o $(patsubst %.c, $(OBJ)/%.o, $(notdir $<)) $< $(CFLAGS)
+	gcc -c -o $(patsubst %.c, $(OBJ)/%.o, $(notdir $<)) $< $(PFLAGS) $(CFLAGS)
 
 # rule for top level source files
 $(OBJ)/%.o: %.c
 	@mkdir -p $(OBJ)
 	@mkdir -p $(BIN)
-	gcc -c -o $@ $< $(CFLAGS) $(INCLUDES)
+	gcc -c -o $@ $< $(PFLAGS) $(CFLAGS) $(INCLUDES)
 
 .PHONY: archive
 # rule to create shared object and archive files

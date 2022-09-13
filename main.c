@@ -7,7 +7,12 @@
 #include "json_parsing.h"
 #include "ttf_util.h"
 
+#ifndef INFOTO_VERSION
+    #define INFOTO_VERSION "no_version"
+#endif
+
 int main(int argc, const char *argv[]) {
+  printf("version: %s\n", INFOTO_VERSION);
   if (argc < 2) {
     fprintf(stderr, "please supply a jpeg file.\n");
     return 1;
