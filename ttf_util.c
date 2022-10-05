@@ -12,10 +12,17 @@ generate_array_template(infoto_bitmap_glyphs, FT_Glyph);
 /**
  * Structure for handling TTF library specific functionality.
  */
-struct infoto_font_handler {
+struct infoto_font_library {
   FT_Library library;
-  FT_Face face;
 };
+
+/**
+ * Structure for handling TTF library specific functionality.
+ */
+// struct infoto_font_handler {
+//  FT_Library library;
+//  FT_Face face;
+//};
 
 /**
  * Structure to hold glyph info about a string.
@@ -25,15 +32,15 @@ struct infoto_glyph_str {
 };
 
 /**
- * Initialize font handler structure for TTF fonts.
+ * Initialize font library structure for TTF fonts.
  *
- * @param[out] handler The infoto_font_handler to initialize.
+ * @param[out] library The infoto_font_library to initialize.
  * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
 infoto_error_enum
-infoto_font_handler_init(struct infoto_font_handler **handler) {
-  struct infoto_font_handler *local =
-      (struct infoto_font_handler *)malloc(sizeof(struct infoto_font_handler));
+infoto_font_library_init(struct infoto_font_library **library) {
+  struct infoto_font_library *local =
+      (struct infoto_font_library *)malloc(sizeof(struct infoto_font_library));
 
   int error = FT_Init_FreeType(&local->library);
   if (error) {
@@ -41,23 +48,25 @@ infoto_font_handler_init(struct infoto_font_handler **handler) {
     fprintf(stderr, "failed to initialize free type library.\n");
     return INFOTO_ERR_TTF_INIT;
   }
-  *handler = local;
+  *library = local;
   return INFOTO_SUCCESS;
 }
 
 /**
  * Load TTF font file with the given size.
  *
- * @param[out] handler The infoto_font_handler to load the TTF file into.
+ * @param[in] library The infoto_font_library to load the TTF file with.
  * @param[in] ttf_file The TTF file to load.
  * @param[in] size The font size.
+ * @param[out] face The infoto_font_face to load the TTF into.
  * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
 infoto_error_enum
-infoto_font_handler_load_font(struct infoto_font_handler *handler,
-                              const char *ttf_file, int size) {
+infoto_font_library_load_font(struct infoto_font_library *library,
+                              const char *ttf_file, int size,
+                              struct infoto_font_face *face) {
   // read ttf font. 0 grabs the first font (some ttf files have multiple fonts)
-  FT_Error error = FT_New_Face(handler->library, ttf_file, 0, &handler->face);
+  FT_Error error = FT_New_Face(library->library, ttf_file, 0, &face->face);
   if (error == FT_Err_Unknown_File_Format) {
     fprintf(stderr, "Font file given could not be opened and read: \"%s\"\n",
             ttf_file);
@@ -68,7 +77,7 @@ infoto_font_handler_load_font(struct infoto_font_handler *handler,
     return INFOTO_ERR_TTF_GENERIC;
   }
   // set width and height. 0 width means height param is used for both.
-  error = FT_Set_Pixel_Sizes(handler->face, 0, size);
+  error = FT_Set_Pixel_Sizes(face->face, 0, size);
   if (error) {
     fprintf(stderr, "failed to set pixel size for font.\n");
     return INFOTO_ERR_TTF_PIXEL_SIZE;
@@ -77,15 +86,23 @@ infoto_font_handler_load_font(struct infoto_font_handler *handler,
 }
 
 /**
- * Free all internal objects in infoto_font_handler.
+ * Free the TTF font face.
  *
- * @param[out] handler The infoto_font_handler to free.
+ * @param[out] face The infoto_font_face to free.
  */
-void infoto_font_handler_free(struct infoto_font_handler **handler) {
-  FT_Done_Face((*handler)->face);
-  FT_Done_FreeType((*handler)->library);
-  free(*handler);
-  *handler = NULL;
+void infoto_font_face_free(struct infoto_font_face *face) {
+  FT_Done_Face(face->face);
+}
+
+/**
+ * Free all internal objects in infoto_font_library.
+ *
+ * @param[out] library The infoto_font_library to free.
+ */
+void infoto_font_library_free(struct infoto_font_library **library) {
+  FT_Done_FreeType((*library)->library);
+  free(*library);
+  *library = NULL;
 }
 
 /**
@@ -205,13 +222,13 @@ void infoto_glyph_str_free(struct infoto_glyph_str *str) {
 /**
  * Create a glyph string with the given text.
  *
- * @param[in] handler The infoto font handler for TTF font info.
+ * @param[in] face The infoto font face for TTF font info.
  * @param[out] glyph_str The infoto_glyph_str to populate.
  * @param[in] text The text to generate glyphs from.
  * @returns INFOTO_SUCCESS if successful, otherwise an error code.
  */
 infoto_error_enum
-infoto_create_glyph_str_from_text(struct infoto_font_handler *handler,
+infoto_create_glyph_str_from_text(struct infoto_font_face *face,
                                   struct infoto_glyph_str *glyph_str,
                                   const char *text) {
   if (text == NULL) {
@@ -220,9 +237,9 @@ infoto_create_glyph_str_from_text(struct infoto_font_handler *handler,
   }
   int text_len = strlen(text);
   int error = 0;
-  FT_GlyphSlot slot = handler->face->glyph;
+  FT_GlyphSlot slot = face->face->glyph;
   for (int i = 0; i < text_len; ++i) {
-    error = FT_Load_Char(handler->face, text[i], FT_LOAD_RENDER);
+    error = FT_Load_Char(face->face, text[i], FT_LOAD_RENDER);
     if (error) {
       fprintf(stderr, "error code %d for loading char: %c\n", error, text[i]);
       return INFOTO_ERR_TTF_LOAD_CHAR;
