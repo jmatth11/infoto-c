@@ -35,5 +35,5 @@
         "color": "white",
         "pixels": 100
     },
-    "image": "references/DSC_1331.jpg"
+    "target": "references/DSC_1331.jpg"
 }
