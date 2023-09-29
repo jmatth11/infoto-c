@@ -35,7 +35,11 @@ infoto_error_enum infoto_process_bulk(struct infoto_img_handler *handler,
     if (result != INFOTO_SUCCESS) {
       break;
     }
-    insert_string_array(edited_imgs, out);
+    if (edited_imgs != NULL) {
+      insert_string_array(edited_imgs, out);
+    } else {
+      free(out);
+    }
     infoto_info_text_free(&info);
   }
   return result;

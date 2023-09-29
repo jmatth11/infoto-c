@@ -10,7 +10,7 @@ static const char *INFOTO_JSON_FORMAT = "{"
                                         " metadata:[%M],"
                                         " font:%M,"
                                         " background:%M,"
-                                        " image:%Q"
+                                        " target:%Q"
                                         "}";
 
 /* Metadata info JSON format */
@@ -124,7 +124,7 @@ infoto_error_enum config_from_json_file(const char *file_name, config *cfg) {
   // %M format is (callback, user_data)
   if (json_scanf(json_data, strlen(json_data), INFOTO_JSON_FORMAT,
                  &parse_metadata_list, cfg, &parse_font_info, cfg,
-                 &parse_background_info, cfg, &cfg->img) <= 0) {
+                 &parse_background_info, cfg, &cfg->target) <= 0) {
     fprintf(stderr, "json scanf error: config_from_json_file.\n");
     return INFOTO_ERR_JSON_GENERIC;
   };

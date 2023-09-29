@@ -71,7 +71,7 @@ typedef struct {
   font_info font;
   background_info background;
   metadata_array metadata;
-  char *img;
+  char *target;
 } config;
 
 /**
